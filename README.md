@@ -46,10 +46,13 @@ Four workspaces share one window, switchable from the top bar.
 
 | Workspace | What it does |
 |-----------|--------------|
-| **Genome browser & variant explorer** | Import 23andMe / AncestryDNA, VCF, FASTA, or GenBank. Variants are drawn as lollipops coloured by ClinVar significance and annotated against ClinVar, gnomAD, and dbSNP (via MyVariant.info). One-click quick-jumps to common health SNPs, a filterable variant table, and a per-variant deep dive with links to dbSNP, ClinVar, GWAS Catalog, MedlinePlus, and a live PubMed search. |
-| **Plasmid designer** | Circular and linear maps, restriction-site mapping with unique-cutter highlighting, ORF detection and translation, primer Tm / GC, and a digest / cloning preview with a mini gel. |
-| **CRISPR studio** | SpCas9 guide design with a real Doench 2014 on-target model, CFD off-target scoring (against the target or a loaded reference genome), NHEJ / HDR edit simulation, and an AAV cargo planner. |
+| **Genome browser & variant explorer** | Import 23andMe / AncestryDNA, VCF, FASTA, or GenBank. Variants are drawn as lollipops coloured by ClinVar significance and annotated against ClinVar, gnomAD, and dbSNP (via MyVariant.info). One-click quick-jumps to common health SNPs, a filterable variant table you can export to CSV, GRCh37 ⇄ GRCh38 liftover, and a per-variant deep dive with links to dbSNP, ClinVar, GWAS Catalog, gnomAD, MedlinePlus, and a live PubMed search. |
+| **Plasmid designer** | Circular and linear maps, restriction-site mapping with unique-cutter highlighting, ORF detection and translation, primer Tm / GC, a digest / cloning preview with a mini gel, and Golden-Gate / Gibson assembly simulation. |
+| **CRISPR studio** | Guide design across SpCas9, SpCas9-NG, SpRY, and Cas12a, with a real Doench 2014 on-target model, CFD off-target scoring (against the target or a loaded reference genome), NHEJ / HDR edit simulation, base- and prime-editing previews, and an AAV cargo planner. |
 | **Phenotype & risk** | Polygenic scores from the PGS Catalog applied to your genome — with coverage, an ancestry caveat, and the Mendelian / ClinVar findings that can matter on their own. |
+
+Open files by drag-and-drop or **File ▸ Open Recent**, copy sequences and IDs to the clipboard, and
+let the app check for new releases on launch.
 
 <p align="center">
   <img src="assets/screenshots/plasmid-designer.png" alt="GenomeForge plasmid designer with a circular map" width="900" />
