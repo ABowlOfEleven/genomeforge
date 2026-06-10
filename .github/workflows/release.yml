@@ -84,6 +84,8 @@ jobs:
           mkdir -p dist
           wix build installer/genomeforge.wxs -arch x64 -o "dist/GenomeForge-$V-x64.msi"
           cp target/release/GenomeForge.exe "dist/GenomeForge-$V-x64-portable.exe"
+          # Drop the WiX debug-symbol byproduct so it isn't shipped on the release.
+          rm -f dist/*.wixpdb
 
       - uses: actions/upload-artifact@v4
         with:
