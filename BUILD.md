@@ -38,7 +38,67 @@ Install: double-click the `.msi`, or `msiexec /i target\wix\GenomeForge-0.1.0-x6
 python assets/gen_icon.py            # -> assets/icon.png (window) + assets/icon.ico (exe/installer)
 ```
 
-## Cross-compiling to Linux (future)
+## Linux
+
 The stack is pure Rust with no platform-specific code outside `build.rs` (Windows-only,
-cfg-gated), so a Linux build is `cargo build --release` on Linux (or a cross toolchain).
-A `.deb`/AppImage can be added later with `cargo-deb` / `cargo-bundle`.
+cfg-gated). `rfd` uses the XDG desktop portal (no GTK) and `ureq` uses rustls (no OpenSSL),
+so the build deps are minimal:
+
+```sh
+sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
+cargo build --release            # -> target/release/GenomeForge
+```
+
+Desktop integration files (used by the tarball and Flatpak) live in `packaging/linux/`:
+the `.desktop` entry and the AppStream `.metainfo.xml`, both named with the app ID
+`io.github.abowlofeleven.GenomeForge`.
+
+### Flatpak
+Manifest: `packaging/flatpak/io.github.abowlofeleven.GenomeForge.yml`. It builds the app
+**inside** the freedesktop SDK (24.08) with the `rust-stable` extension, OFFLINE, from
+vendored cargo sources. Generate those once with
+[flatpak-builder-tools](https://github.com/flatpak/flatpak-builder-tools):
+
+```sh
+python flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
+flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08 \
+                          org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak-builder --user --install --force-clean build-dir \
+  packaging/flatpak/io.github.abowlofeleven.GenomeForge.yml
+flatpak run io.github.abowlofeleven.GenomeForge
+```
+File access is portal-mediated, so the sandbox needs no broad `--filesystem` permission.
+
+## macOS
+
+```sh
+# Universal (Intel + Apple Silicon):
+rustup target add x86_64-apple-darwin aarch64-apple-darwin
+cargo build --release --target x86_64-apple-darwin -p gx-app
+cargo build --release --target aarch64-apple-darwin -p gx-app
+lipo -create -output GenomeForge \
+  target/x86_64-apple-darwin/release/GenomeForge target/aarch64-apple-darwin/release/GenomeForge
+```
+`packaging/macos/Info.plist` is the bundle plist; the CI release job assembles
+`GenomeForge.app` (with an `.icns` built from `assets/icon.png`), ad-hoc signs it
+(`codesign -s -`, so the arm64 slice launches), and wraps it in a `.dmg`. Builds are
+**unsigned/unnotarized** — Gatekeeper will warn; right-click ▸ Open (or
+`xattr -dr com.apple.quarantine GenomeForge.app`) to run.
+
+## Continuous integration & releases
+
+- **`.github/workflows/ci.yml`** — builds, tests, and runs `clippy -D warnings` on
+  Windows, Linux, and macOS for every push to `main` and every PR.
+- **`.github/workflows/release.yml`** — on a `v*` tag (or the manual "Run workflow"
+  button), re-verifies on each OS and, only if that passes, builds and publishes a single
+  GitHub Release with: Windows `.exe` + `.msi`, Linux `.tar.gz` + Flatpak bundle, and a
+  universal macOS `.dmg`. Cut a release with:
+
+  ```sh
+  git tag v0.1.0 && git push origin v0.1.0
+  ```
+
+  Bumping the version means updating **all four** version sources before tagging:
+  `Cargo.toml` (`[workspace.package].version`), `installer/genomeforge.wxs` (`Version`),
+  `packaging/macos/Info.plist`, and `packaging/linux/*.metainfo.xml`. The release job
+  fails fast if the tag and `Cargo.toml` disagree.

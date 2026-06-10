@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=GenomeForge
+GenericName=Genome Browser
+Comment=Local genome browser, variant explorer, plasmid & CRISPR studio
+Exec=GenomeForge %f
+Icon=io.github.abowlofeleven.GenomeForge
+Terminal=false
+Categories=Science;Biology;Education;
+Keywords=genome;DNA;variant;SNP;CRISPR;plasmid;bioinformatics;genomics;
+StartupNotify=true

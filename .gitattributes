@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize all text files to LF in the repository. CI shell steps, the Flatpak
+# manifest, and the Linux .desktop entry must be LF to run on Linux/macOS.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.ico binary

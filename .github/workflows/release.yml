@@ -1,0 +1,237 @@
+name: Release
+
+# On a v* tag (or the "Run workflow" button), verify on each platform and — only
+# if verification passes — build that platform's artifact and publish a single
+# GitHub Release with all of them attached:
+#   * Windows: portable .exe + MSI installer
+#   * Linux:   .tar.gz (binary + .desktop + icon) and a Flatpak bundle
+#   * macOS:   universal (x86_64 + arm64) .app inside a .dmg
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 0.1.0 (publishes tag v<version>)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  meta:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ github.event.inputs.version }}"
+          else
+            version="${GITHUB_REF_NAME}"
+          fi
+          version="${version#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version (tag v$version)"
+      - name: Check tag matches crate version
+        shell: bash
+        run: |
+          crate_version="$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          if [ "$crate_version" != "${{ steps.v.outputs.version }}" ]; then
+            echo "::error::Tag '${{ steps.v.outputs.version }}' != crate version '$crate_version'. Bump [workspace.package].version in Cargo.toml AND installer/genomeforge.wxs, packaging/macos/Info.plist, packaging/linux/*.metainfo.xml, then re-tag."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------- Windows ---
+  windows:
+    name: Windows (exe + MSI)
+    needs: meta
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (release)
+        run: cargo build --workspace --release --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Install WiX v5
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.dotnet\tools"
+
+      - name: Package
+        shell: bash
+        run: |
+          V="${{ needs.meta.outputs.version }}"
+          mkdir -p dist
+          wix build installer/genomeforge.wxs -arch x64 -o "dist/GenomeForge-$V-x64.msi"
+          cp target/release/GenomeForge.exe "dist/GenomeForge-$V-x64-portable.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  # ------------------------------------------------------------------ Linux ---
+  linux:
+    name: Linux (tarball)
+    needs: meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (release)
+        run: cargo build --workspace --release --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Package tarball
+        run: |
+          V="${{ needs.meta.outputs.version }}"
+          STAGE="GenomeForge-$V-x86_64-linux"
+          mkdir -p dist "$STAGE"
+          cp target/release/GenomeForge "$STAGE/"
+          cp packaging/linux/io.github.abowlofeleven.GenomeForge.desktop "$STAGE/"
+          cp assets/icon.png "$STAGE/GenomeForge.png"
+          tar -czf "dist/$STAGE.tar.gz" "$STAGE"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  # ---------------------------------------------------------------- Flatpak ---
+  # Best-effort: a Flatpak build is fiddly, so a failure here does NOT block the
+  # other platforms' release (continue-on-error). The binary is built inside the
+  # freedesktop SDK from OFFLINE vendored cargo sources generated from Cargo.lock.
+  flatpak:
+    name: Linux (Flatpak)
+    needs: meta
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate cargo-sources.json
+        run: |
+          python3 -m pip install --break-system-packages aiohttp toml \
+            || python3 -m pip install aiohttp toml
+          curl -sSL -o /tmp/flatpak-cargo-generator.py \
+            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
+          python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: GenomeForge-${{ needs.meta.outputs.version }}-x86_64.flatpak
+          manifest-path: packaging/flatpak/io.github.abowlofeleven.GenomeForge.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: GenomeForge-${{ needs.meta.outputs.version }}-x86_64.flatpak
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------ macOS ---
+  macos:
+    name: macOS (universal .dmg)
+    needs: meta
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Build universal binary
+        run: |
+          cargo build --release --locked -p gx-app --target x86_64-apple-darwin
+          cargo build --release --locked -p gx-app --target aarch64-apple-darwin
+          lipo -create -output GenomeForge \
+            target/x86_64-apple-darwin/release/GenomeForge \
+            target/aarch64-apple-darwin/release/GenomeForge
+          file GenomeForge
+
+      - name: Assemble .app and .dmg
+        run: |
+          V="${{ needs.meta.outputs.version }}"
+          APP="GenomeForge.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp packaging/macos/Info.plist "$APP/Contents/Info.plist"
+          cp GenomeForge "$APP/Contents/MacOS/GenomeForge"
+          chmod +x "$APP/Contents/MacOS/GenomeForge"
+          # Build an .icns from the 256px PNG.
+          ICONSET="icon.iconset"; mkdir "$ICONSET"
+          for s in 16 32 128 256 512; do
+            sips -z $s $s assets/icon.png --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
+            d=$((s * 2))
+            sips -z $d $d assets/icon.png --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/icon.icns"
+          # Ad-hoc sign so the arm64 slice will launch (still unnotarized).
+          codesign --force --deep --sign - "$APP"
+          mkdir -p dist
+          hdiutil create -volname "GenomeForge" -srcfolder "$APP" -ov -format UDZO \
+            "dist/GenomeForge-$V-macos-universal.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+
+  # ---------------------------------------------------------------- Release ---
+  release:
+    name: Publish GitHub Release
+    needs: [meta, windows, linux, flatpak, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List artifacts
+        run: find artifacts -type f -printf '%s\t%p\n'
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.meta.outputs.tag }}
+          name: GenomeForge ${{ needs.meta.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: artifacts/**/*

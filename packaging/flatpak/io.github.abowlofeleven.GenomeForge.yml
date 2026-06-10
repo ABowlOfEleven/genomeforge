@@ -1,0 +1,52 @@
+# Flatpak manifest for GenomeForge.
+#
+# Builds the Rust app inside the freedesktop SDK (so it links against the
+# runtime, not the CI host) using the rust-stable extension and OFFLINE,
+# vendored cargo dependencies. `cargo-sources.json` is generated in CI from
+# Cargo.lock by flatpak-cargo-generator and placed next to this manifest.
+#
+# File access is portal-mediated (rfd 0.17 uses the XDG desktop portal on
+# Linux), so the app needs NO broad --filesystem permission: the user picks a
+# file and the portal grants access to just that file.
+id: io.github.abowlofeleven.GenomeForge
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: GenomeForge
+
+finish-args:
+  # GPU-accelerated rendering (egui/glow) on Wayland or X11.
+  - --device=dri
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # Variant/gene annotation, PGS Catalog, and PubMed are fetched over the network.
+  - --share=network
+
+modules:
+  - name: genomeforge
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/genomeforge/cargo
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --verbose -p gx-app
+      - install -Dm755 target/release/GenomeForge /app/bin/GenomeForge
+      - install -Dm644 packaging/linux/io.github.abowlofeleven.GenomeForge.desktop
+        /app/share/applications/io.github.abowlofeleven.GenomeForge.desktop
+      - install -Dm644 packaging/linux/io.github.abowlofeleven.GenomeForge.metainfo.xml
+        /app/share/metainfo/io.github.abowlofeleven.GenomeForge.metainfo.xml
+      - install -Dm644 assets/icon.png
+        /app/share/icons/hicolor/256x256/apps/io.github.abowlofeleven.GenomeForge.png
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - .github
+          - target
+      - cargo-sources.json
