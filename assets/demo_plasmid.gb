@@ -1,0 +1,40 @@
+LOCUS       pGFDEMO           909 bp    DNA     circular SYN 09-JUN-2026
+DEFINITION  Synthetic demo plasmid for GenomeForge (not a real construct).
+ACCESSION   pGFDEMO
+VERSION     pGFDEMO.1
+KEYWORDS    .
+SOURCE      synthetic DNA construct
+  ORGANISM  synthetic DNA construct
+FEATURES             Location/Qualifiers
+     source          1..909
+                     /organism="synthetic DNA construct"
+     misc_feature    13..60
+                     /label="MCS"
+     promoter        70..113
+                     /label="Plac"
+     CDS             120..413
+                     /label="demoFP"
+                     /gene="dfp"
+     CDS             423..824
+                     /label="AmpR"
+                     /gene="bla"
+     rep_origin      834..897
+                     /label="ori"
+ORIGIN
+        1 atcatcatca tcgaattcga gctcggtacc ggatcctcta gagtcgacct gcagaagctt
+       61 atcatcatct tgacaatata tatatatata tatattataa tatatatata tatatcatca
+      121 tgccgggtga tgaaaaactg caggaaaccg aaaaatatta taaacgtaaa tatgaactgc
+      181 gtgaagatga acgtgaaggt tcttatggtc tgtctattct gacccagctg aaagaaacct
+      241 ggtatccgaa caaccagtct cgtattcgta aatcttggcc gaactctaaa ctgtatattc
+      301 cgggttggta tgaaaaaccg ccgcagtgga acaaaaaagt ttggaaagaa tctaactctg
+      361 atcaggctaa ccagattctg tgggaaacct ctggtcgtga tgattggaaa taaatcatca
+      421 tcatgattaa cgatgttggt tatgtttatc aggatcgtgg taaaattggt cgtcgtgctt
+      481 ggattgtttc tgctggttat cagccgggtg aaaacgatga tgatgatctg tgggatgaaa
+      541 ccaaaaccaa cattctgccg gaactggctg gtctgcaggc taaaaccgat ggtgttcagc
+      601 agtggctgct gtggaactgg tggtctaaag gtctgccggt ttggattgct acccagggtg
+      661 cttctaaagt tcagattcag cgtccgcgta cccgtgatcg tacctggcag gctgctgttt
+      721 gggttaccca gaaccagcag aaacgtctgc gttggacccc gacctgggct tggcagaaac
+      781 tggatacctg gatttatccg aaagataacg ataaaattat ttaaatcatc atcgcgcagc
+      841 gtgaccgcta cacttgccag cgccctagcg cccgctcctt tcgctttctt cccttccatc
+      901 atcatcatc
+//

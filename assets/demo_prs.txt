@@ -1,0 +1,18 @@
+###PGS CATALOG SCORING FILE - synthetic demo for GenomeForge (not a real score)
+#format_version=2.0
+#pgs_id=PGSDEMO01
+#pgs_name=GenomeForge_demo
+#trait_reported=Demo Trait (synthetic)
+#variants_number=10
+#HmPOS_build=GRCh37
+rsID	chr_name	effect_allele	other_allele	effect_weight	allelefrequency_effect	hm_rsID	hm_chr	hm_pos
+rs6025	1	A	G	0.20	0.02	rs6025	1	169519049
+rs1801133	1	A	G	0.15	0.30	rs1801133	1	11856378
+rs4988235	2	A	G	-0.10	0.50	rs4988235	2	136608646
+rs7903146	10	T	C	0.25	0.30	rs7903146	10	114758349
+rs9939609	16	A	T	0.18	0.40	rs9939609	16	53820527
+rs429358	19	C	T	0.30	0.15	rs429358	19	45411941
+rs4680	22	A	G	-0.05	0.50	rs4680	22	19951271
+rs1815739	11	T	C	0.08	0.40	rs1815739	11	66560624
+rs1051730	15	A	G	0.12	0.35	rs1051730	15	78894339
+rs1801282	3	C	G	-0.20	0.10	rs1801282	3	12393125

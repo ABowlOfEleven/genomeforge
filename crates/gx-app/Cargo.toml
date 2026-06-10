@@ -1,0 +1,38 @@
+[package]
+name = "gx-app"
+version = "0.1.0"
+edition = "2024"
+description = "GenomeForge — a local genome browser, variant explorer, plasmid designer, CRISPR studio, and polygenic-risk tool"
+authors = ["GenomeForge contributors"]
+license = "MIT"
+
+# Friendly binary name for the installed app / Start-menu entry.
+[[bin]]
+name = "GenomeForge"
+path = "src/main.rs"
+
+[package.metadata.wix]
+upgrade-guid = "8F3A2C14-7B6D-4E59-9A20-1C5E6D7F8A90"
+path-guid = "2D4B6E81-3C5A-4F70-8B12-9E0A1B2C3D4E"
+
+[dependencies]
+anyhow = "1.0.102"
+directories = "6.0.0"
+eframe = { version = "0.34.3", features = ["persistence"] }
+egui = "0.34.3"
+egui_extras = "0.34.3"
+env_logger = "0.11.10"
+flate2 = "1.1.9"
+gx-annotate = { version = "0.1.0", path = "../gx-annotate" }
+gx-core = { version = "0.1.0", path = "../gx-core" }
+gx-crispr = { version = "0.1.0", path = "../gx-crispr" }
+gx-io = { version = "0.1.0", path = "../gx-io" }
+gx-pgs = { version = "0.1.0", path = "../gx-pgs" }
+gx-plasmid = { version = "0.1.0", path = "../gx-plasmid" }
+log = "0.4.32"
+rfd = "0.17.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+
+[build-dependencies]
+winresource = "0.1.31"

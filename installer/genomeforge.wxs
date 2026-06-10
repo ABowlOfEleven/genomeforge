@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GenomeForge MSI (WiX v4+/v5/v6/v7). Per-user install (no admin needed).
+     Build from the repo root:
+       wix build installer/genomeforge.wxs -arch x64 -o target/wix/GenomeForge-0.1.0-x64.msi -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="GenomeForge"
+      Manufacturer="GenomeForge"
+      Version="0.1.0.0"
+      UpgradeCode="8F3A2C14-7B6D-4E59-9A20-1C5E6D7F8A90"
+      Scope="perUser"
+      Compressed="yes">
+
+    <!-- AllowSameVersionUpgrades lets a rebuilt 0.1.0.0 MSI cleanly replace an
+         installed 0.1.0.0 (dev iteration) instead of being skipped by Windows
+         Installer's equal-file-version rule. RemoveExistingProducts runs after
+         the new files are staged, so the install is an atomic swap. -->
+    <MajorUpgrade
+        AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of GenomeForge is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="GenomeForgeIcon" SourceFile="assets/icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="GenomeForgeIcon" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="GenomeForge" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="GenomeForge" Level="1">
+      <Component Id="MainExe" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="GenomeForgeExe" Source="target/release/GenomeForge.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="*">
+        <Shortcut Id="AppShortcut"
+                  Name="GenomeForge"
+                  Description="Genome browser, variant explorer, plasmid &amp; CRISPR studio"
+                  Target="[INSTALLFOLDER]GenomeForge.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="GenomeForgeIcon" />
+        <RegistryValue Root="HKCU" Key="Software\GenomeForge" Name="installed"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>
