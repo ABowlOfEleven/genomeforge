@@ -1,9 +1,10 @@
 # Flatpak manifest for GenomeForge.
 #
 # Builds the Rust app inside the freedesktop SDK (so it links against the
-# runtime, not the CI host) using the rust-stable extension and OFFLINE,
-# vendored cargo dependencies. `cargo-sources.json` is generated in CI from
-# Cargo.lock by flatpak-cargo-generator and placed next to this manifest.
+# runtime, not the CI host) using the rust-stable extension. The build runs
+# with network access so cargo fetches crates from crates.io directly — simpler
+# than offline vendoring (and fine for a self-hosted bundle, though it is not
+# Flathub-compliant; Flathub requires fully offline builds).
 #
 # File access is portal-mediated (rfd 0.17 uses the XDG desktop portal on
 # Linux), so the app needs NO broad --filesystem permission: the user picks a
@@ -30,11 +31,15 @@ modules:
     buildsystem: simple
     build-options:
       append-path: /usr/lib/sdk/rust-stable/bin
+      # Build online — fetch crates from crates.io during the build. Simpler and
+      # more robust than offline vendoring for a self-hosted bundle. (This is NOT
+      # Flathub-compliant; Flathub requires fully offline builds.)
+      build-args:
+        - --share=network
       env:
         CARGO_HOME: /run/build/genomeforge/cargo
     build-commands:
-      - cargo --offline fetch --manifest-path Cargo.toml --verbose
-      - cargo --offline build --release --verbose -p gx-app
+      - cargo build --release --locked --verbose -p gx-app
       - install -Dm755 target/release/GenomeForge /app/bin/GenomeForge
       - install -Dm644 packaging/linux/io.github.abowlofeleven.GenomeForge.desktop
         /app/share/applications/io.github.abowlofeleven.GenomeForge.desktop
@@ -49,4 +54,3 @@ modules:
           - .git
           - .github
           - target
-      - cargo-sources.json

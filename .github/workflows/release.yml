@@ -133,7 +133,8 @@ jobs:
   # ---------------------------------------------------------------- Flatpak ---
   # Best-effort: a Flatpak build is fiddly, so a failure here does NOT block the
   # other platforms' release (continue-on-error). The binary is built inside the
-  # freedesktop SDK from OFFLINE vendored cargo sources generated from Cargo.lock.
+  # freedesktop SDK; the manifest enables network during the build so cargo
+  # fetches crates from crates.io (no vendoring / Python generator needed).
   flatpak:
     name: Linux (Flatpak)
     needs: meta
@@ -144,13 +145,6 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - name: Generate cargo-sources.json
-        run: |
-          python3 -m pip install --break-system-packages aiohttp toml \
-            || python3 -m pip install aiohttp toml
-          curl -sSL -o /tmp/flatpak-cargo-generator.py \
-            https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
-          python3 /tmp/flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
       - name: Build Flatpak bundle
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
