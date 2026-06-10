@@ -8,12 +8,18 @@
 pub mod aav;
 pub mod doench;
 pub mod edit;
+pub mod editing;
 pub mod guides;
+pub mod nuclease;
 pub mod offtarget;
 pub mod score;
 
 pub use aav::AavCargo;
 pub use edit::{EditPreview, hdr_replace, nhej_deletion};
+pub use editing::{
+    BaseEdit, BaseEditOutcome, BaseEditor, PrimeEdit, PrimeEditOutcome, base_edit, prime_edit,
+};
 pub use guides::{Guide, PROTOSPACER_LEN, find_guides};
+pub use nuclease::{Nuclease, find_guides_for, iupac_matches};
 pub use offtarget::{OffTarget, find_matches, find_offtargets, specificity};
 pub use score::{cfd_score, on_target_estimate};

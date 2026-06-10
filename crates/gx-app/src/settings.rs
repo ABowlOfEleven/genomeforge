@@ -22,6 +22,19 @@ pub struct Settings {
     pub seen_plasmid: bool,
     pub seen_crispr: bool,
     pub seen_phenotype: bool,
+    /// Recently opened files (most recent first), for File ▸ Open Recent.
+    #[serde(default)]
+    pub recent_files: Vec<String>,
+}
+
+impl Settings {
+    /// Record `path` as the most-recently-opened file (deduped, capped at 8).
+    pub fn push_recent(&mut self, path: &std::path::Path) {
+        let p = path.to_string_lossy().to_string();
+        self.recent_files.retain(|x| x != &p);
+        self.recent_files.insert(0, p);
+        self.recent_files.truncate(8);
+    }
 }
 
 impl Default for Settings {
@@ -35,6 +48,7 @@ impl Default for Settings {
             seen_plasmid: false,
             seen_crispr: false,
             seen_phenotype: false,
+            recent_files: Vec::new(),
         }
     }
 }

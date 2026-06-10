@@ -125,6 +125,36 @@ impl AnnotationService {
         Ok(Some(seq))
     }
 
+    /// Lift a single position from one assembly to another (e.g. GRCh37 →
+    /// GRCh38) via the Ensembl assembly-map API. Returns the mapped
+    /// `(seq_region_name, position)`, or `None` when the position doesn't map.
+    /// A same-build request is a no-op (`None`). Errors when offline (mapping is
+    /// not cached). Not cached — liftover is user-initiated and cheap per call.
+    pub fn liftover(
+        &self,
+        from: Assembly,
+        to: Assembly,
+        contig: &str,
+        pos: u64,
+    ) -> Result<Option<(String, u64)>> {
+        if from == to {
+            return Ok(None);
+        }
+        if !self.online {
+            return Err(AnnotateError::OfflineMiss(format!(
+                "liftover {}:{} {}→{}",
+                contig,
+                pos,
+                from.ensembl_name(),
+                to.ensembl_name(),
+            )));
+        }
+        let mapped =
+            self.ensembl
+                .map_assembly(from.ensembl_name(), to.ensembl_name(), contig, pos, pos)?;
+        Ok(mapped.map(|(seq_region_name, start, _end)| (seq_region_name, start)))
+    }
+
     /// Resolve a gene symbol to a location, cache-first.
     pub fn gene_location(&self, symbol: &str) -> Result<Option<GeneLocation>> {
         if let Some(gene) = self.cache.get_gene(self.assembly, symbol)? {

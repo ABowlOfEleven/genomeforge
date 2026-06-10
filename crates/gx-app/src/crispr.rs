@@ -5,8 +5,8 @@ use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 
 use gx_crispr::{
-    AavCargo, Guide, OffTarget, find_guides, find_matches, find_offtargets, hdr_replace,
-    nhej_deletion, specificity,
+    AavCargo, BaseEditor, Guide, Nuclease, OffTarget, PrimeEdit, base_edit, find_guides_for,
+    find_matches, find_offtargets, hdr_replace, nhej_deletion, prime_edit, specificity,
 };
 
 use crate::theme::palette;
@@ -21,6 +21,8 @@ pub struct CrisprState {
     pub target: Vec<u8>,
     pub target_name: String,
     pub input_text: String,
+    /// Nuclease / PAM the guides are enumerated for.
+    pub nuclease: Nuclease,
     pub guides: Vec<Guide>,
     pub selected: Option<usize>,
     pub offtargets: Vec<OffTarget>,
@@ -29,6 +31,8 @@ pub struct CrisprState {
     pub min_on: f32,
     pub del_len: usize,
     pub donor: String,
+    /// Base the prime-edit demo installs at the cut site.
+    pub pe_to: char,
     pub aav: AavCargo,
     last_key: Option<(usize, usize)>,
     /// A loaded reference (chromosome / genome FASTA) to search for off-targets.
@@ -44,6 +48,7 @@ impl Default for CrisprState {
             target: Vec::new(),
             target_name: String::new(),
             input_text: String::new(),
+            nuclease: Nuclease::SpCas9,
             guides: Vec::new(),
             selected: None,
             offtargets: Vec::new(),
@@ -52,6 +57,7 @@ impl Default for CrisprState {
             min_on: 0.0,
             del_len: 1,
             donor: String::new(),
+            pe_to: 'A',
             aav: AavCargo::default(),
             last_key: None,
             reference: None,
@@ -63,16 +69,28 @@ impl Default for CrisprState {
 
 impl CrisprState {
     pub fn set_target(&mut self, seq: Vec<u8>, name: String) {
-        self.target = seq;
+        // Normalise to uppercase ACGTN so every downstream byte index is ASCII
+        // (a loaded FASTA/GenBank can contain lowercase, IUPAC, or other bytes;
+        // the paste path already filters, but loaded sequences bypass it).
+        self.target = seq
+            .iter()
+            .map(|b| b.to_ascii_uppercase())
+            .filter(|b| matches!(b, b'A' | b'C' | b'G' | b'T' | b'N'))
+            .collect();
         self.target_name = name;
-        self.guides = find_guides(&self.target);
+        self.reanalyze();
+        self.aav.transgene_bp = self.target.len() as u32;
+    }
+
+    /// Re-find guides for the current target + nuclease (used on a nuclease change).
+    pub fn reanalyze(&mut self) {
+        self.guides = find_guides_for(&self.target, self.nuclease);
         self.selected = None;
         self.offtargets.clear();
         self.spec = 100.0;
         self.last_key = None;
         self.ref_offtargets.clear();
         self.ref_key = None;
-        self.aav.transgene_bp = self.target.len() as u32;
     }
 
     pub fn set_reference(&mut self, name: String, seq: Vec<u8>) {
@@ -198,6 +216,29 @@ pub fn sidebar(
             state.set_target(cleaned, "pasted".to_string());
         }
     }
+
+    // Nuclease / PAM picker — re-finds guides for the current target on change.
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        ui.label("Nuclease:");
+        let before = state.nuclease;
+        egui::ComboBox::from_id_salt("nuclease")
+            .selected_text(state.nuclease.label())
+            .show_ui(ui, |ui| {
+                for n in Nuclease::all() {
+                    ui.selectable_value(&mut state.nuclease, n, n.label());
+                }
+            });
+        if state.nuclease != before && !state.target.is_empty() {
+            state.reanalyze();
+        }
+    });
+    ux::explain_beginner(
+        ui,
+        tier,
+        "Different nucleases recognise different short 'PAM' motifs next to the cut, which \
+         changes where you can target. SpCas9 (NGG) is the classic one.",
+    );
 
     ui.separator();
     if state.target.is_empty() {
@@ -411,6 +452,14 @@ pub fn detail(ui: &mut egui::Ui, state: &mut CrisprState, tier: Tier) {
         }
     });
 
+    if ui
+        .button("Copy guide")
+        .on_hover_text("Copy the protospacer sequence to the clipboard")
+        .clicked()
+    {
+        ui.ctx().copy_text(g.protospacer.clone());
+    }
+
     ui.add_space(6.0);
     ux::explain(
         ui,
@@ -539,6 +588,79 @@ fn edit_sim(ui: &mut egui::Ui, state: &mut CrisprState, g: &Guide, tier: Tier) {
                 let hdr = hdr_replace(&state.target, lo, hi, &donor);
                 show_edit(ui, &hdr.before, &hdr.after, hdr.frameshift);
             }
+        });
+
+    // ---- Base & prime editing (no double-strand break) --------------------
+    ui.add_space(6.0);
+    egui::CollapsingHeader::new("Base & prime editing")
+        .default_open(false)
+        .show(ui, |ui| {
+            ux::explain(
+                ui,
+                tier,
+                "Base editors change one letter within a small window of the guide, without \
+                 cutting. Prime editing can install an arbitrary small edit at the nick.",
+            );
+            let mut shown_window = false;
+            for editor in [BaseEditor::CytosineCBE, BaseEditor::AdenineABE] {
+                let out = base_edit(g, editor);
+                if !shown_window {
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "Edit window: protospacer positions {}–{}",
+                            out.window.0 + 1,
+                            out.window.1
+                        ))
+                        .size(10.0)
+                        .color(palette::RULER_TEXT),
+                    );
+                    shown_window = true;
+                }
+                ui.add_space(2.0);
+                ui.label(egui::RichText::new(out.editor.label()).strong());
+                if out.edits.is_empty() {
+                    ui.label(
+                        egui::RichText::new("No editable base in the window.")
+                            .size(11.0)
+                            .color(palette::RULER_TEXT),
+                    );
+                } else {
+                    ui.label(egui::RichText::new(format!("guide:  {}", g.protospacer)).monospace().size(11.0));
+                    ui.label(
+                        egui::RichText::new(format!("result: {}", out.edited_protospacer))
+                            .monospace()
+                            .size(11.0)
+                            .color(palette::ACCENT),
+                    );
+                    let edits: Vec<String> = out
+                        .edits
+                        .iter()
+                        .map(|e| format!("pos {} {}→{}", e.pos_in_protospacer + 1, e.from, e.to))
+                        .collect();
+                    ui.label(egui::RichText::new(edits.join(", ")).size(11.0).color(palette::RULER_TEXT));
+                }
+            }
+
+            ui.add_space(6.0);
+            ui.label(egui::RichText::new("Prime editing").strong());
+            ui.horizontal(|ui| {
+                ui.label(format!("Install at cut site ({}):", g.cut_site + 1));
+                for b in ['A', 'C', 'G', 'T'] {
+                    ui.selectable_value(&mut state.pe_to, b, b.to_string());
+                }
+            });
+            let pe = prime_edit(
+                &state.target,
+                &PrimeEdit::Substitution { pos: g.cut_site, to: state.pe_to },
+            );
+            let lo = g.cut_site.saturating_sub(8);
+            let hi = (g.cut_site + 9).min(pe.edited.len());
+            show_edit(
+                ui,
+                &pe.original[lo..hi.min(pe.original.len())],
+                &pe.edited[lo..hi],
+                None,
+            );
         });
 }
 

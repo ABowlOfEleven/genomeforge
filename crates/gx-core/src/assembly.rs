@@ -41,6 +41,14 @@ impl Assembly {
         }
     }
 
+    /// Ensembl assembly name, e.g. `"GRCh38"` (used by the REST assembly-map API).
+    pub fn ensembl_name(self) -> &'static str {
+        match self {
+            Assembly::Grch38 => "GRCh38",
+            Assembly::Grch37 => "GRCh37",
+        }
+    }
+
     /// All builds, for UI pickers.
     pub fn all() -> [Assembly; 2] {
         [Assembly::Grch38, Assembly::Grch37]

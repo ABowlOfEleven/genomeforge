@@ -72,7 +72,16 @@ pub struct GenomeForgeApp {
     requested_annot: HashSet<String>,
     /// PubMed articles fetched per rsID (None entry = fetch in flight).
     literature: HashMap<String, Option<Vec<gx_annotate::Article>>>,
+    /// Last liftover result for the selected variant: (target build, mapped coord).
+    lift: Option<(Assembly, Option<(String, u64)>)>,
+    /// Newer release found by the update check, if any.
+    update: Option<gx_annotate::UpdateInfo>,
+    show_about: bool,
+    show_shortcuts: bool,
 }
+
+/// The GitHub repo the update check queries.
+const REPO: &str = "ABowlOfEleven/genomeforge";
 
 impl GenomeForgeApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -105,6 +114,11 @@ impl GenomeForgeApp {
             worker.send(Request::FetchPgs(id.clone()));
             startup_requests += 1;
         }
+        // Quietly check for a newer release on startup (online only).
+        if settings.online {
+            worker.send(Request::CheckUpdate(REPO.to_string()));
+            startup_requests += 1;
+        }
         Self {
             view: GenomeView::default(),
             last_online: settings.online,
@@ -129,6 +143,10 @@ impl GenomeForgeApp {
             table_only_notable: false,
             requested_annot: HashSet::new(),
             literature: HashMap::new(),
+            lift: None,
+            update: None,
+            show_about: false,
+            show_shortcuts: false,
         }
     }
 
@@ -201,6 +219,21 @@ impl GenomeForgeApp {
                 Response::Pgs(Err(e)) => self.phenotype.status = format!("PGS error: {e}"),
                 Response::Literature { rsid, articles } => {
                     self.literature.insert(rsid, Some(articles));
+                }
+                Response::Liftover { to, mapped } => {
+                    self.status = match &mapped {
+                        Some((c, p)) => format!("Lifted to {}: {c}:{}", to.label(), p + 1),
+                        None => format!("Position does not map to {}.", to.label()),
+                    };
+                    self.lift = Some((to, mapped));
+                }
+                Response::Update(info) => {
+                    if let Some(u) = &info
+                        && gx_annotate::is_newer(&u.tag, env!("CARGO_PKG_VERSION"))
+                    {
+                        self.status = format!("Update available: {} (Help ▸ About).", u.tag);
+                        self.update = info;
+                    }
                 }
                 Response::Notice(s) => self.status = s,
                 Response::Failed(e) => {
@@ -324,6 +357,7 @@ impl GenomeForgeApp {
         self.view.contig = contig.clone();
         self.view.center = pos as f64;
         self.selection = Some((contig, pos));
+        self.lift = None; // a liftover result belongs to the previously selected variant
         if let Some(id) = rsid {
             let needed = self
                 .document
@@ -378,9 +412,16 @@ impl GenomeForgeApp {
             .add_filter("All files", &["*"])
             .pick_file()
         {
-            self.status = format!("Importing {}…", path.display());
-            self.send(Request::Import(path));
+            self.import_file(path);
         }
+    }
+
+    /// Import a file (from the dialog, the recent list, or a drag-and-drop),
+    /// recording it in the recent-files list.
+    fn import_file(&mut self, path: PathBuf) {
+        self.settings.push_recent(&path);
+        self.status = format!("Importing {}…", path.display());
+        self.send(Request::Import(path));
     }
 
     // ---- panels ------------------------------------------------------------
@@ -410,6 +451,29 @@ impl GenomeForgeApp {
             ui.menu_button("File", |ui| {
                 if ui.button("Open genome…  (Ctrl+O)").clicked() {
                     self.open_file_dialog();
+                    ui.close();
+                }
+                let mut reopen: Option<PathBuf> = None;
+                ui.menu_button("Open Recent", |ui| {
+                    if self.settings.recent_files.is_empty() {
+                        ui.label(egui::RichText::new("(nothing yet)").weak());
+                    }
+                    for f in &self.settings.recent_files {
+                        if ui.button(f).clicked() {
+                            reopen = Some(PathBuf::from(f));
+                            ui.close();
+                        }
+                    }
+                    if !self.settings.recent_files.is_empty() {
+                        ui.separator();
+                        if ui.button("Clear recent").clicked() {
+                            self.settings.recent_files.clear();
+                            ui.close();
+                        }
+                    }
+                });
+                if let Some(p) = reopen {
+                    self.import_file(p);
                 }
             });
             ui.menu_button("View", |ui| {
@@ -480,10 +544,27 @@ impl GenomeForgeApp {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ux::tier_picker(ui, &mut self.settings.tier);
-                if ui.button("? Help").clicked() {
-                    let section = self.tool.section();
-                    self.open_tutorial(section);
-                }
+                ui.menu_button("Help", |ui| {
+                    if ui.button("Tutorial for this workspace").clicked() {
+                        let section = self.tool.section();
+                        self.open_tutorial(section);
+                        ui.close();
+                    }
+                    if ui.button("Keyboard shortcuts").clicked() {
+                        self.show_shortcuts = true;
+                        ui.close();
+                    }
+                    if ui.button("Check for updates").clicked() {
+                        self.send(Request::CheckUpdate(REPO.to_string()));
+                        self.status = "Checking for updates…".into();
+                        ui.close();
+                    }
+                    ui.separator();
+                    if ui.button("About GenomeForge").clicked() {
+                        self.show_about = true;
+                        ui.close();
+                    }
+                });
                 ui.separator();
                 let (mode, mode_color) = if self.settings.online {
                     ("online", palette::BENIGN)
@@ -747,14 +828,20 @@ impl GenomeForgeApp {
         });
 
         // Pull owned identifiers, then the `doc`/`v` borrow ends so the
-        // literature drill-down can take `&mut self`.
+        // &mut self drill-downs (literature, liftover) are legal.
         let rsid = v.rsid.clone();
         let gene = doc.annotation_for(v).and_then(|a| a.gene.clone());
+        let gnomad_id = v
+            .ref_allele
+            .clone()
+            .zip(v.alt_alleles.first().cloned())
+            .map(|(r, a)| format!("{}-{}-{}-{}", contig.trim_start_matches("chr"), pos + 1, r, a));
 
-        if let Some(rsid) = rsid {
-            resource_links(ui, &rsid, gene.as_deref(), tier);
-            self.literature_section(ui, &rsid, tier, online);
+        resource_links(ui, rsid.as_deref(), gene.as_deref(), gnomad_id.as_deref(), tier);
+        if let Some(rsid) = &rsid {
+            self.literature_section(ui, rsid, tier, online);
         }
+        self.liftover_section(ui, &contig, pos, tier);
         ui.add_space(8.0);
         ux::disclaimer(ui);
     }
@@ -821,6 +908,49 @@ impl GenomeForgeApp {
                 {
                     self.literature.insert(rsid.to_string(), None);
                     self.send(Request::Literature(rsid.to_string()));
+                }
+            }
+        }
+    }
+
+    /// Liftover control: convert this position to the other human build.
+    fn liftover_section(&mut self, ui: &mut egui::Ui, contig: &str, pos: u64, tier: Tier) {
+        let from = self.current_assembly();
+        let to = other_assembly(from);
+        ui.add_space(10.0);
+        ui.label(egui::RichText::new("Liftover").strong());
+        ux::explain_beginner(
+            ui,
+            tier,
+            "Genome builds number the same base differently. This converts the position to \
+             the other build (GRCh37 ↔ GRCh38) using Ensembl.",
+        );
+        if ui
+            .add_enabled(
+                self.settings.online,
+                egui::Button::new(format!("Lift {contig}:{} to {}", pos + 1, to.label())).small(),
+            )
+            .on_disabled_hover_text("Enable Online in Settings to use liftover")
+            .clicked()
+        {
+            self.lift = None;
+            self.send(Request::Liftover { from, to, contig: contig.to_string(), pos });
+            self.status = "Lifting coordinate…".into();
+        }
+        if let Some((t, mapped)) = &self.lift {
+            match mapped {
+                Some((c, p)) => {
+                    ui.label(
+                        egui::RichText::new(format!("→ {}  {c}:{}", t.label(), p + 1))
+                            .color(palette::BENIGN),
+                    );
+                }
+                None => {
+                    ui.label(
+                        egui::RichText::new(format!("Does not map to {}.", t.label()))
+                            .size(11.0)
+                            .color(palette::VUS),
+                    );
                 }
             }
         }
@@ -914,7 +1044,76 @@ impl GenomeForgeApp {
                     });
                 }
             });
+
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            if ui
+                .button("Export table (CSV)")
+                .on_hover_text("Save the currently filtered variants to a CSV file")
+                .clicked()
+                && let Some(path) = rfd::FileDialog::new()
+                    .set_file_name("genomeforge-variants.csv")
+                    .add_filter("CSV", &["csv"])
+                    .save_file()
+                && let Err(e) = std::fs::write(&path, variants_to_csv(&rows))
+            {
+                log::warn!("CSV export failed: {e}");
+            }
+            ui.label(
+                egui::RichText::new(format!("{} rows", rows.len()))
+                    .size(11.0)
+                    .color(palette::RULER_TEXT),
+            );
+        });
         clicked
+    }
+
+    fn about_window(&mut self, ctx: &egui::Context) {
+        let mut open = self.show_about;
+        egui::Window::new("About GenomeForge")
+            .open(&mut open)
+            .resizable(false)
+            .collapsible(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    draw_brand_mark(ui);
+                    ui.add_space(2.0);
+                    ui.heading("GenomeForge");
+                });
+                ui.label(
+                    egui::RichText::new(concat!("Version ", env!("CARGO_PKG_VERSION")))
+                        .color(palette::RULER_TEXT),
+                );
+                ui.add_space(4.0);
+                ui.label("A local, native genome browser, variant explorer, plasmid designer,");
+                ui.label("CRISPR studio, and polygenic-risk tool. Your data stays on your machine.");
+                ui.add_space(6.0);
+                if let Some(u) = self.update.clone() {
+                    egui::Frame::new()
+                        .fill(theme::tokens::ACCENT.gamma_multiply(0.12))
+                        .stroke(egui::Stroke::new(1.0, theme::tokens::ACCENT))
+                        .corner_radius(egui::CornerRadius::same(6))
+                        .inner_margin(egui::Margin::same(8))
+                        .show(ui, |ui| {
+                            ui.label(
+                                egui::RichText::new(format!("Update available: {}", u.tag)).strong(),
+                            );
+                            ui.hyperlink_to("Download the latest release", u.url);
+                        });
+                    ui.add_space(6.0);
+                }
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 10.0;
+                    ui.hyperlink_to("Project", format!("https://github.com/{REPO}"));
+                    ui.hyperlink_to("Releases", format!("https://github.com/{REPO}/releases"));
+                    ui.hyperlink_to("Report an issue", format!("https://github.com/{REPO}/issues"));
+                });
+                ui.add_space(4.0);
+                ui.label(egui::RichText::new("MIT licensed.").size(11.0).color(palette::RULER_TEXT));
+                ux::disclaimer(ui);
+            });
+        self.show_about = open;
     }
 
     fn settings_window(&mut self, ctx: &egui::Context) {
@@ -1167,25 +1366,46 @@ impl GenomeForgeApp {
 }
 
 /// External "Learn more" links for a variant — authoritative NCBI/NIH/EBI
-/// resources, keyed off the rsID (build-independent) and gene where known.
-/// These open in the user's browser; nothing here leaves the machine until clicked.
-fn resource_links(ui: &mut egui::Ui, rsid: &str, gene: Option<&str>, tier: ux::Tier) {
+/// resources, keyed off the rsID (build-independent), the variant locus (gnomAD),
+/// and the gene where known. These open in the user's browser; nothing here
+/// leaves the machine until clicked.
+fn resource_links(
+    ui: &mut egui::Ui,
+    rsid: Option<&str>,
+    gene: Option<&str>,
+    gnomad_id: Option<&str>,
+    tier: ux::Tier,
+) {
     ui.add_space(8.0);
     ui.label(egui::RichText::new("Learn more").strong());
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 10.0;
-        ui.hyperlink_to("dbSNP", format!("https://www.ncbi.nlm.nih.gov/snp/{rsid}"));
-        ui.hyperlink_to("ClinVar", format!("https://www.ncbi.nlm.nih.gov/clinvar/?term={rsid}"));
-        ui.hyperlink_to("PubMed", format!("https://pubmed.ncbi.nlm.nih.gov/?term={rsid}"));
-        ui.hyperlink_to("GWAS Catalog", format!("https://www.ebi.ac.uk/gwas/variants/{rsid}"));
-        ui.hyperlink_to("SNPedia", format!("https://www.snpedia.com/index.php/{rsid}"));
-        if tier.at_least(ux::Tier::Intermediate) {
+        if let Some(rsid) = rsid {
+            ui.hyperlink_to("dbSNP", format!("https://www.ncbi.nlm.nih.gov/snp/{rsid}"));
+            ui.hyperlink_to("ClinVar", format!("https://www.ncbi.nlm.nih.gov/clinvar/?term={rsid}"));
+            ui.hyperlink_to("PubMed", format!("https://pubmed.ncbi.nlm.nih.gov/?term={rsid}"));
+            ui.hyperlink_to("GWAS Catalog", format!("https://www.ebi.ac.uk/gwas/variants/{rsid}"));
+            ui.hyperlink_to("SNPedia", format!("https://www.snpedia.com/index.php/{rsid}"));
+            if tier.at_least(ux::Tier::Intermediate) {
+                ui.hyperlink_to(
+                    "Ensembl",
+                    format!("https://www.ensembl.org/Homo_sapiens/Variation/Explore?v={rsid}"),
+                );
+            }
+        }
+        if let Some(id) = gnomad_id {
             ui.hyperlink_to(
-                "Ensembl",
-                format!("https://www.ensembl.org/Homo_sapiens/Variation/Explore?v={rsid}"),
+                "gnomAD",
+                format!("https://gnomad.broadinstitute.org/variant/{id}?dataset=gnomad_r4"),
             );
         }
-        if let Some(g) = gene.filter(|g| !g.is_empty()) {
+    });
+
+    // Gene-level resources on their own line.
+    if let Some(g) = gene.filter(|g| !g.is_empty()) {
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = 10.0;
+            ui.label(egui::RichText::new(format!("{g}:")).color(palette::RULER_TEXT));
             ui.hyperlink_to(
                 "MedlinePlus",
                 format!("https://medlineplus.gov/genetics/gene/{}/", g.to_lowercase()),
@@ -1194,8 +1414,88 @@ fn resource_links(ui: &mut egui::Ui, rsid: &str, gene: Option<&str>, tier: ux::T
                 "NCBI Gene",
                 format!("https://www.ncbi.nlm.nih.gov/gene/?term={g}%5Bsym%5D+AND+human%5Borgn%5D"),
             );
+            ui.hyperlink_to(
+                "ClinVar",
+                format!("https://www.ncbi.nlm.nih.gov/clinvar/?term={g}%5Bgene%5D"),
+            );
+            ui.hyperlink_to("PubMed", format!("https://pubmed.ncbi.nlm.nih.gov/?term={g}"));
+        });
+    }
+}
+
+/// Serialise the (already-filtered) variant rows to CSV.
+fn variants_to_csv(rows: &[&gx_annotate::VariantAnnotation]) -> String {
+    fn field(s: &str) -> String {
+        // Neutralise spreadsheet formula injection: annotation text comes from
+        // remote databases, and a leading =, +, -, @ (or tab/CR) is executed as
+        // a formula by Excel / Sheets / LibreOffice. Prefix such values with '.
+        let s = if s.starts_with(['=', '+', '-', '@', '\t', '\r']) {
+            format!("'{s}")
+        } else {
+            s.to_string()
+        };
+        if s.contains([',', '"', '\n']) {
+            format!("\"{}\"", s.replace('"', "\"\""))
+        } else {
+            s
         }
-    });
+    }
+    let mut out =
+        String::from("rsid,gene,consequence,clinvar_significance,conditions,gnomad_af,gwas_traits\n");
+    for a in rows {
+        let cols = [
+            a.rsid.clone(),
+            a.gene.clone().unwrap_or_default(),
+            a.consequence.clone().unwrap_or_default(),
+            a.clinical_significance.clone().unwrap_or_default(),
+            a.conditions.join("; "),
+            a.gnomad_af.map(|x| format!("{x}")).unwrap_or_default(),
+            a.gwas_traits.join("; "),
+        ];
+        out.push_str(&cols.iter().map(|c| field(c)).collect::<Vec<_>>().join(","));
+        out.push('\n');
+    }
+    out
+}
+
+/// The other human build (GRCh37 ⇄ GRCh38).
+fn other_assembly(a: Assembly) -> Assembly {
+    match a {
+        Assembly::Grch38 => Assembly::Grch37,
+        Assembly::Grch37 => Assembly::Grch38,
+    }
+}
+
+/// A small reference of keyboard shortcuts and interactions.
+fn shortcuts_window(ctx: &egui::Context, open: &mut bool) {
+    let mut keep = true;
+    egui::Window::new("Keyboard shortcuts")
+        .open(&mut keep)
+        .resizable(false)
+        .collapsible(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            egui::Grid::new("shortcuts").num_columns(2).striped(true).spacing([24.0, 6.0]).show(
+                ui,
+                |ui| {
+                    for (k, what) in [
+                        ("Ctrl/Cmd + O", "Open a genome / sequence file"),
+                        ("Drag & drop", "Open a file by dropping it on the window"),
+                        ("Drag in browser", "Pan the genome / plasmid view"),
+                        ("Scroll", "Zoom the view in and out"),
+                        ("Click a lollipop", "Inspect that variant"),
+                        ("Esc", "Close this window / Settings / a tutorial"),
+                    ] {
+                        ui.label(egui::RichText::new(k).strong().monospace());
+                        ui.label(what);
+                        ui.end_row();
+                    }
+                },
+            );
+        });
+    if !keep {
+        *open = false;
+    }
 }
 
 /// Paint the GenomeForge brand mark: a small two-strand DNA helix with rungs,
@@ -1257,12 +1557,20 @@ impl eframe::App for GenomeForgeApp {
         if ui.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, egui::Key::O)) {
             self.open_file_dialog();
         }
-        // Esc dismisses the Settings / Tutorial windows.
-        if (self.show_settings || self.show_tutorial)
+        // Drag-and-drop a genome/sequence file onto the window to open it.
+        if let Some(path) = ui
+            .input(|i| i.raw.dropped_files.iter().find_map(|f| f.path.clone()))
+        {
+            self.import_file(path);
+        }
+        // Esc dismisses the transient windows.
+        if (self.show_settings || self.show_tutorial || self.show_about || self.show_shortcuts)
             && ui.input(|i| i.key_pressed(egui::Key::Escape))
         {
             self.show_settings = false;
             self.show_tutorial = false;
+            self.show_about = false;
+            self.show_shortcuts = false;
         }
 
         egui::TopBottomPanel::top("menubar").show_inside(ui, |ui| self.menu_bar(ui));
@@ -1352,6 +1660,15 @@ impl eframe::App for GenomeForgeApp {
                 &mut self.tutorial_step,
                 &mut self.show_tutorial,
             );
+        }
+
+        if self.show_about {
+            let ctx = ui.ctx().clone();
+            self.about_window(&ctx);
+        }
+        if self.show_shortcuts {
+            let ctx = ui.ctx().clone();
+            shortcuts_window(&ctx, &mut self.show_shortcuts);
         }
     }
 

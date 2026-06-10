@@ -1,0 +1,47 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do **not** paste raw genetic data
+        or any personal genome file — describe the file type instead (23andMe, VCF, …).
+  - type: input
+    id: version
+    attributes:
+      label: GenomeForge version
+      description: Shown in the status bar and the About dialog (e.g. 0.1.1).
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - macOS
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: Run with `RUST_LOG=info` from a terminal and paste any relevant output.
+      render: shell

@@ -11,7 +11,7 @@ use std::thread;
 use eframe::egui;
 
 use gx_core::{Assembly, Feature, GenomicRange};
-use gx_annotate::{AnnotationService, Article, Cache, GeneLocation, VariantAnnotation};
+use gx_annotate::{AnnotationService, Article, Cache, GeneLocation, UpdateInfo, VariantAnnotation};
 
 pub enum Request {
     Import(PathBuf),
@@ -22,6 +22,15 @@ pub enum Request {
     FetchPgs(String),
     /// Fetch related PubMed articles for a variant (by rsID).
     Literature(String),
+    /// Lift a coordinate from one assembly to another.
+    Liftover {
+        from: Assembly,
+        to: Assembly,
+        contig: String,
+        pos: u64,
+    },
+    /// Check GitHub for a newer release of the app.
+    CheckUpdate(String),
     SetOnline(bool),
     SetAssembly(Assembly),
     Shutdown,
@@ -49,6 +58,13 @@ pub enum Response {
         rsid: String,
         articles: Vec<Article>,
     },
+    /// Liftover result: the lifted `(contig, pos)`, or `None` if unmapped.
+    Liftover {
+        to: Assembly,
+        mapped: Option<(String, u64)>,
+    },
+    /// Latest GitHub release, if the check succeeded (`None` = up to date / no releases).
+    Update(Option<UpdateInfo>),
     Notice(String),
     Failed(String),
     /// A counted request that produced no data (keeps the in-flight tally exact).
@@ -188,5 +204,24 @@ fn handle(service: &mut AnnotationService, req: Request) -> HandleOutcome {
                 HandleOutcome::Reply(Response::Literature { rsid, articles: Vec::new() })
             }
         },
+        Request::Liftover { from, to, contig, pos } => match service.liftover(from, to, &contig, pos) {
+            Ok(mapped) => {
+                log::info!("liftover {contig}:{pos} {} -> {}: {mapped:?}", from.label(), to.label());
+                HandleOutcome::Reply(Response::Liftover { to, mapped })
+            }
+            Err(e) => HandleOutcome::Reply(Response::Failed(format!("liftover: {e}"))),
+        },
+        Request::CheckUpdate(repo) => {
+            if !service.is_online() {
+                return HandleOutcome::Reply(Response::Idle);
+            }
+            match gx_annotate::latest_release(&repo) {
+                Ok(info) => HandleOutcome::Reply(Response::Update(info)),
+                Err(e) => {
+                    log::warn!("update check failed: {e}");
+                    HandleOutcome::Reply(Response::Update(None))
+                }
+            }
+        }
     }
 }

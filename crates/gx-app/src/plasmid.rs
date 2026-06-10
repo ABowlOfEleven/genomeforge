@@ -494,6 +494,41 @@ fn cloning_ui(ui: &mut egui::Ui, rec: &SequenceRecord, state: &PlasmidState, tie
                 );
             }
         });
+
+    // Assembly: do these fragments ligate back into a circular product?
+    ui.add_space(6.0);
+    ui.label(egui::RichText::new("Assembly").strong());
+    let parts = gx_plasmid::fragments_to_parts(&rec.seq, rec.circular, &frags);
+    match gx_plasmid::golden_gate(&parts) {
+        Some(asm) if asm.circular => {
+            ui.label(
+                egui::RichText::new(format!(
+                    "✓ {} fragments ligate into a circular {} bp product",
+                    asm.order.len(),
+                    asm.seq.len()
+                ))
+                .color(palette::BENIGN),
+            );
+        }
+        _ => {
+            ui.label(
+                egui::RichText::new("Fragments don't close into one circular product (ends incompatible).")
+                    .size(11.0)
+                    .color(palette::RULER_TEXT),
+            );
+        }
+    }
+    if tier.at_least(Tier::Intermediate) {
+        ui.label(
+            egui::RichText::new(
+                "Compatibility is by sticky-end overhang type and length (Golden-Gate / \
+                 restriction-ligation). Gibson assembly instead joins fragments by homologous \
+                 overlapping ends.",
+            )
+            .size(10.0)
+            .color(palette::RULER_TEXT),
+        );
+    }
 }
 
 fn end_label(e: &gx_plasmid::FragmentEnd) -> String {

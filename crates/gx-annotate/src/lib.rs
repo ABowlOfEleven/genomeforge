@@ -12,6 +12,7 @@ mod error;
 mod literature;
 mod pgs;
 mod service;
+mod update;
 
 pub use annotation::{GeneLocation, VariantAnnotation, feature_from_ensembl};
 pub use cache::Cache;
@@ -20,3 +21,4 @@ pub use error::{AnnotateError, Result};
 pub use literature::{Article, PubMedClient};
 pub use pgs::PgsClient;
 pub use service::AnnotationService;
+pub use update::{UpdateInfo, is_newer, latest_release};

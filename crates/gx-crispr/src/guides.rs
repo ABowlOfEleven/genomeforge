@@ -1,21 +1,28 @@
 //! SpCas9 guide (sgRNA) enumeration: find protospacers adjacent to an NGG PAM
 //! on both strands and score them.
+//!
+//! [`find_guides`] is the SpCas9-specific entry point and is preserved for
+//! backward compatibility; it now delegates to
+//! [`crate::nuclease::find_guides_for`] with [`Nuclease::SpCas9`], which
+//! generalizes the same logic to other nucleases/PAMs.
 
 use gx_core::Strand;
 use gx_plasmid::{gc_content, reverse_complement};
 
+use crate::nuclease::{Nuclease, find_guides_for};
 use crate::score::{has_poly_t, on_target_estimate};
 
 pub const PROTOSPACER_LEN: usize = 20;
 
 #[derive(Debug, Clone)]
 pub struct Guide {
-    /// 0-based top-strand start of the 20 nt protospacer footprint.
+    /// 0-based top-strand start of the protospacer footprint.
     pub start: usize,
     pub strand: Strand,
-    /// 20 nt spacer, 5'→3' (the guide/target-strand sequence).
+    /// Spacer, 5'→3' (the guide/target-strand sequence); length depends on the
+    /// nuclease (20 nt for the Cas9 family, 23 nt for Cas12a).
     pub protospacer: String,
-    /// 3 nt PAM, 5'→3'.
+    /// PAM, 5'→3'.
     pub pam: String,
     pub gc: f64,
     /// Heuristic on-target efficiency estimate in `[0, 1]`.
@@ -23,13 +30,23 @@ pub struct Guide {
     pub poly_t: bool,
     /// 0-based top-strand position of the predicted blunt DSB (3 bp 5' of PAM).
     pub cut_site: usize,
+    /// The nuclease this guide was enumerated for.
+    pub nuclease: Nuclease,
 }
 
-fn is_acgt(s: &[u8]) -> bool {
-    s.iter().all(|b| matches!(b.to_ascii_uppercase(), b'A' | b'C' | b'G' | b'T'))
-}
-
-fn make_guide(start: usize, strand: Strand, proto: &[u8], pam: &[u8], cut: usize, on_score: f64) -> Guide {
+/// Construct a [`Guide`] for an arbitrary nuclease. Crate-internal helper shared
+/// with [`crate::nuclease`]; the on-target score is supplied by the caller so
+/// each enumerator can choose the appropriate model.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn make_guide_for(
+    start: usize,
+    strand: Strand,
+    proto: &[u8],
+    pam: &[u8],
+    cut: usize,
+    on_score: f64,
+    nuclease: Nuclease,
+) -> Guide {
     Guide {
         start,
         strand,
@@ -39,13 +56,17 @@ fn make_guide(start: usize, strand: Strand, proto: &[u8], pam: &[u8], cut: usize
         on_score,
         poly_t: has_poly_t(proto),
         cut_site: cut,
+        nuclease,
     }
 }
 
-/// On-target score: the exact Doench 2014 model computed from the 30-mer
+/// SpCas9 on-target score: the exact Doench 2014 model computed from the 30-mer
 /// context (4 nt + 20 nt + 3 nt PAM + 3 nt) when that context is in-bounds,
 /// otherwise the documented heuristic (only happens near sequence ends).
-fn on_target(up: &[u8], start: usize, strand: Strand, proto: &[u8]) -> f64 {
+///
+/// Only valid for SpCas9 — the Doench model was trained on SpCas9 and is not
+/// applied to other nucleases.
+pub(crate) fn on_target_spcas9(up: &[u8], start: usize, strand: Strand, proto: &[u8]) -> f64 {
     let n = up.len();
     let mer: Option<Vec<u8>> = match strand {
         Strand::Reverse if start >= 6 && start + 24 <= n => {
@@ -61,51 +82,11 @@ fn on_target(up: &[u8], start: usize, strand: Strand, proto: &[u8]) -> f64 {
 }
 
 /// Enumerate all SpCas9 (NGG) guides on both strands, sorted by on-target score.
+///
+/// Preserved for backward compatibility; equivalent to
+/// `find_guides_for(seq, Nuclease::SpCas9)`.
 pub fn find_guides(seq: &[u8]) -> Vec<Guide> {
-    let up = seq.to_ascii_uppercase();
-    let n = up.len();
-    let mut guides = Vec::new();
-    if n < PROTOSPACER_LEN + 3 {
-        return guides;
-    }
-
-    // Forward strand: 5'-[20 nt protospacer]-NGG-3'. PAM occupies [p, p+2].
-    for p in PROTOSPACER_LEN..=(n - 3) {
-        if up[p + 1] == b'G' && up[p + 2] == b'G' {
-            let proto = &up[p - PROTOSPACER_LEN..p];
-            if !is_acgt(proto) {
-                continue;
-            }
-            make_into(&mut guides, &up, p - PROTOSPACER_LEN, Strand::Forward, proto, &up[p..p + 3], p - 3);
-        }
-    }
-
-    // Reverse strand: PAM reads CCN on the top strand at [p, p+2]; the
-    // protospacer is the reverse complement of the 20 nt 3' of it.
-    for p in 0..=(n - (PROTOSPACER_LEN + 3)) {
-        if up[p] == b'C' && up[p + 1] == b'C' {
-            let region = &up[p + 3..p + 3 + PROTOSPACER_LEN];
-            if !is_acgt(region) {
-                continue;
-            }
-            let proto = reverse_complement(region);
-            let pam = reverse_complement(&up[p..p + 3]); // CCN -> NGG (5'->3')
-            make_into(&mut guides, &up, p + 3, Strand::Reverse, &proto, &pam, p + 6);
-        }
-    }
-
-    guides.sort_by(|a, b| {
-        b.on_score
-            .partial_cmp(&a.on_score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    guides
-}
-
-#[allow(clippy::too_many_arguments)]
-fn make_into(out: &mut Vec<Guide>, up: &[u8], start: usize, strand: Strand, proto: &[u8], pam: &[u8], cut: usize) {
-    let on = on_target(up, start, strand, proto);
-    out.push(make_guide(start, strand, proto, pam, cut, on));
+    find_guides_for(seq, Nuclease::SpCas9)
 }
 
 #[cfg(test)]

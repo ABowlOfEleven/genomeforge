@@ -6,7 +6,7 @@
   <Package
       Name="GenomeForge"
       Manufacturer="GenomeForge"
-      Version="0.1.0.0"
+      Version="0.1.1.0"
       UpgradeCode="8F3A2C14-7B6D-4E59-9A20-1C5E6D7F8A90"
       Scope="perUser"
       Compressed="yes">
