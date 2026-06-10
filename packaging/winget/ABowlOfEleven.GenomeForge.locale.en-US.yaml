@@ -1,0 +1,26 @@
+PackageIdentifier: ABowlOfEleven.GenomeForge
+PackageVersion: 0.1.1
+PackageLocale: en-US
+Publisher: GenomeForge
+PublisherUrl: https://github.com/ABowlOfEleven/genomeforge
+PublisherSupportUrl: https://github.com/ABowlOfEleven/genomeforge/issues
+PackageName: GenomeForge
+PackageUrl: https://github.com/ABowlOfEleven/genomeforge
+License: MIT
+LicenseUrl: https://github.com/ABowlOfEleven/genomeforge/blob/main/LICENSE
+ShortDescription: A local, native genome browser, variant explorer, plasmid designer, and CRISPR studio.
+Description: |-
+  GenomeForge is a local, native desktop app to explore a genome down to the variant —
+  cross-referenced against public genetic databases — plus a plasmid designer, a CRISPR
+  studio, and polygenic-risk tools. Your raw genetic data stays on your machine. Research
+  and educational use only; not medical advice.
+Moniker: genomeforge
+Tags:
+  - genomics
+  - bioinformatics
+  - genome-browser
+  - variant
+  - crispr
+  - plasmid
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

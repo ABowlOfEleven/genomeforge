@@ -17,7 +17,7 @@
 </div>
 
 <p align="center">
-  <img src="assets/screenshots/genome-browser.png" alt="GenomeForge genome browser with a variant selected" width="900" />
+  <img src="assets/screenshots/demo.gif" alt="GenomeForge — genome browser, variant detail, plasmid map, and CRISPR studio" width="900" />
 </p>
 
 GenomeForge brings the kind of tooling that used to live behind cloud platforms and paywalls into a
@@ -75,7 +75,19 @@ Grab the latest build for your platform from the [**Releases**](https://github.c
 |----------|-------|
 | **Windows** | `GenomeForge-<version>-x64.msi` (installer) or the portable `.exe` |
 | **Linux** | `.tar.gz` (portable binary) or a Flatpak bundle |
-| **macOS** | universal `.dmg` (Intel + Apple Silicon) — unsigned, so right-click then Open the first time |
+| **macOS** | universal `.dmg` (Intel + Apple Silicon) |
+
+No genome of your own? The app ships with a synthetic demo — **File ▸ Open ▸ `assets/sample_genome_23andme.txt`** (or just drag it onto the window).
+
+### First run
+
+The builds aren't yet code-signed, so each OS will warn you the first time. This is expected; here's how to get past it:
+
+- **Windows** — SmartScreen may show "Windows protected your PC." Click **More info ▸ Run anyway**. (The MSI installs per-user; no admin needed.)
+- **macOS** — Gatekeeper will say the app "can't be opened." **Right-click the app ▸ Open ▸ Open**, or run `xattr -dr com.apple.quarantine /Applications/GenomeForge.app`. The build is universal (Intel + Apple Silicon).
+- **Linux** — the tarball binary just runs (`./GenomeForge`); `chmod +x` it if needed. For the Flatpak: `flatpak install --user GenomeForge-*.flatpak` then `flatpak run io.github.abowlofeleven.GenomeForge`.
+
+Signing/notarization is on the roadmap — until then, the source is right here if you'd rather build it yourself.
 
 ## Build from source
 
