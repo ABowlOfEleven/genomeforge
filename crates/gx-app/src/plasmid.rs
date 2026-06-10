@@ -473,7 +473,7 @@ fn cloning_ui(ui: &mut egui::Ui, rec: &SequenceRecord, state: &PlasmidState, tie
     let sites: Vec<gx_plasmid::RestrictionSite> =
         state.visible_sites().iter().map(|(_, s)| (*s).clone()).collect();
     let mut frags = gx_plasmid::digest(rec.len(), rec.circular, &sites);
-    frags.sort_by(|a, b| b.len.cmp(&a.len));
+    frags.sort_by_key(|f| std::cmp::Reverse(f.len));
 
     ui.label(egui::RichText::new(format!("{} fragment(s)", frags.len())).strong());
     gel(ui, &frags);

@@ -58,8 +58,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.96.0"
           components: clippy
       - uses: Swatinem/rust-cache@v2
 
@@ -101,8 +102,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.96.0"
           components: clippy
       - uses: Swatinem/rust-cache@v2
 
@@ -168,8 +170,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.96.0"
           components: clippy
           targets: x86_64-apple-darwin,aarch64-apple-darwin
       - uses: Swatinem/rust-cache@v2

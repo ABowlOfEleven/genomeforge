@@ -38,8 +38,11 @@ jobs:
             libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        # Pinned (not @stable) so a newer toolchain's clippy can't fail CI
+        # unexpectedly. Bump deliberately.
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.96.0"
           components: clippy
 
       - name: Cache cargo registry & build
