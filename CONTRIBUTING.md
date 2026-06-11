@@ -17,7 +17,7 @@ it up automatically.
 
 ## Before you open a PR
 
-Run the same checks CI runs — all three must be clean:
+Run the same checks CI runs (all three must be clean):
 
 ```sh
 cargo build --workspace --locked
@@ -34,7 +34,7 @@ A Cargo workspace of focused crates:
 
 | Crate | Responsibility |
 |-------|----------------|
-| `gx-core` | Domain model — assemblies, ranges, variants, features |
+| `gx-core` | Domain model: assemblies, ranges, variants, features |
 | `gx-io` | Importers: raw DNA, VCF, FASTA / GenBank |
 | `gx-annotate` | Online + cached annotation (MyVariant, Ensembl, PGS, PubMed) |
 | `gx-plasmid` | Restriction mapping, ORFs, primers, digest / cloning / assembly |

@@ -6,7 +6,7 @@
 
 ### Your genome, on your machine.
 
-**A professional-grade genomics workbench — genome browser, plasmid designer, CRISPR studio, and polygenic-risk modeling — that runs natively, works offline, and keeps your DNA private.**
+**A professional-grade genomics workbench (genome browser, plasmid designer, CRISPR studio, and polygenic-risk modeling) that runs natively, works offline, and keeps your DNA private.**
 
 [![CI](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/ci.yml/badge.svg)](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/ci.yml)
 [![Release](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/release.yml/badge.svg)](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/release.yml)
@@ -17,28 +17,28 @@
 </div>
 
 <p align="center">
-  <img src="assets/screenshots/demo.gif" alt="GenomeForge — genome browser, variant detail, plasmid map, and CRISPR studio" width="900" />
+  <img src="assets/screenshots/demo.gif" alt="GenomeForge: genome browser, variant detail, plasmid map, and CRISPR studio" width="900" />
 </p>
 
 GenomeForge brings the kind of tooling that used to live behind cloud platforms and paywalls into a
 single fast, native app that runs entirely on your computer. Load a 23andMe export or a VCF and start
-exploring in seconds — annotate variants against the major public databases, jump straight to
-well-known health SNPs, read the primary literature — then step next door to design a plasmid or a
+exploring in seconds. Annotate variants against the major public databases, jump straight to
+well-known health SNPs, read the primary literature, then step next door to design a plasmid or a
 CRISPR edit. No account, no upload, no subscription.
 
 ## Why GenomeForge
 
 - **Private by design.** Your raw genotypes never leave the machine. Only rsIDs and genomic regions are
   ever sent to public APIs, and an offline mode uses nothing but the local cache.
-- **Native, not a web app.** Pure Rust and egui — a small, quick binary with no browser engine, no
+- **Native, not a web app.** Pure Rust and egui: a small, quick binary with no browser engine, no
   Electron, and no telemetry.
 - **Four tools in one window.** A genome browser, a plasmid CAD, a CRISPR studio, and a polygenic-risk
-  modeler, switchable from the top bar — no more stitching together half a dozen sites.
+  modeler, switchable from the top bar. No more stitching together half a dozen sites.
 - **Approachable *and* professional.** A single dropdown retunes the entire interface from
   high-school-friendly to expert-dense, with a built-in tutorial in every section.
-- **Free and open source.** MIT-licensed and multiplatform — Windows, Linux, and macOS.
+- **Free and open source.** MIT-licensed and multiplatform: Windows, Linux, and macOS.
 
-> Research and educational use only — not medical advice.
+> Research and educational use only. Not medical advice.
 
 ## What's inside
 
@@ -49,7 +49,7 @@ Four workspaces share one window, switchable from the top bar.
 | **Genome browser & variant explorer** | Import 23andMe / AncestryDNA, VCF, FASTA, or GenBank. Variants are drawn as lollipops coloured by ClinVar significance and annotated against ClinVar, gnomAD, and dbSNP (via MyVariant.info). One-click quick-jumps to common health SNPs, a filterable variant table you can export to CSV, GRCh37 ⇄ GRCh38 liftover, and a per-variant deep dive with links to dbSNP, ClinVar, GWAS Catalog, gnomAD, MedlinePlus, and a live PubMed search. |
 | **Plasmid designer** | Circular and linear maps, restriction-site mapping with unique-cutter highlighting, ORF detection and translation, primer Tm / GC, a digest / cloning preview with a mini gel, and Golden-Gate / Gibson assembly simulation. |
 | **CRISPR studio** | Guide design across SpCas9, SpCas9-NG, SpRY, and Cas12a, with a real Doench 2014 on-target model, CFD off-target scoring (against the target or a loaded reference genome), NHEJ / HDR edit simulation, base- and prime-editing previews, and an AAV cargo planner. |
-| **Phenotype & risk** | Polygenic scores from the PGS Catalog applied to your genome — with coverage, an ancestry caveat, and the Mendelian / ClinVar findings that can matter on their own. |
+| **Phenotype & risk** | Polygenic scores from the PGS Catalog applied to your genome, with coverage, an ancestry caveat, and the Mendelian / ClinVar findings that can matter on their own. |
 
 Open files by drag-and-drop or **File ▸ Open Recent**, copy sequences and IDs to the clipboard, and
 let the app check for new releases on launch.
@@ -63,9 +63,9 @@ let the app check for new releases on launch.
 A dropdown in every workspace retunes the whole interface, and each section has a short built-in
 tutorial:
 
-- **Beginner** — plain language and guided, written for a student or the simply curious.
-- **Intermediate** — the same, plus the numbers and what they mean.
-- **Expert** — dense and complete, for biologists and genomics professionals.
+- **Beginner:** plain language and guided, written for a student or the simply curious.
+- **Intermediate:** the same, plus the numbers and what they mean.
+- **Expert:** dense and complete, for biologists and genomics professionals.
 
 ## Download
 
@@ -77,17 +77,17 @@ Grab the latest build for your platform from the [**Releases**](https://github.c
 | **Linux** | `.tar.gz` (portable binary) or a Flatpak bundle |
 | **macOS** | universal `.dmg` (Intel + Apple Silicon) |
 
-No genome of your own? The app ships with a synthetic demo — **File ▸ Open ▸ `assets/sample_genome_23andme.txt`** (or just drag it onto the window).
+No genome of your own? The app ships with a synthetic demo: **File ▸ Open ▸ `assets/sample_genome_23andme.txt`** (or just drag it onto the window).
 
 ### First run
 
 The builds aren't yet code-signed, so each OS will warn you the first time. This is expected; here's how to get past it:
 
-- **Windows** — SmartScreen may show "Windows protected your PC." Click **More info ▸ Run anyway**. (The MSI installs per-user; no admin needed.)
-- **macOS** — Gatekeeper will say the app "can't be opened." **Right-click the app ▸ Open ▸ Open**, or run `xattr -dr com.apple.quarantine /Applications/GenomeForge.app`. The build is universal (Intel + Apple Silicon).
-- **Linux** — the tarball binary just runs (`./GenomeForge`); `chmod +x` it if needed. For the Flatpak: `flatpak install --user GenomeForge-*.flatpak` then `flatpak run io.github.abowlofeleven.GenomeForge`.
+- **Windows:** SmartScreen may show "Windows protected your PC." Click **More info ▸ Run anyway**. (The MSI installs per-user; no admin needed.)
+- **macOS:** Gatekeeper will say the app "can't be opened." **Right-click the app ▸ Open ▸ Open**, or run `xattr -dr com.apple.quarantine /Applications/GenomeForge.app`. The build is universal (Intel + Apple Silicon).
+- **Linux:** the tarball binary just runs (`./GenomeForge`); `chmod +x` it if needed. For the Flatpak: `flatpak install --user GenomeForge-*.flatpak` then `flatpak run io.github.abowlofeleven.GenomeForge`.
 
-Signing/notarization is on the roadmap — until then, the source is right here if you'd rather build it yourself.
+Signing/notarization is on the roadmap; until then, the source is right here if you'd rather build it yourself.
 
 ## Build from source
 
@@ -108,7 +108,7 @@ A Cargo workspace of small, focused crates:
 
 | Crate | Responsibility |
 |-------|----------------|
-| `gx-core` | Domain model — assemblies, ranges, variants, features |
+| `gx-core` | Domain model: assemblies, ranges, variants, features |
 | `gx-io` | Importers: raw DNA, VCF, FASTA / GenBank |
 | `gx-annotate` | Hybrid online + cached annotation (MyVariant, Ensembl, PGS Catalog, PubMed) over a local cache |
 | `gx-plasmid` | Restriction mapping, ORFs, primers, digest / cloning |
@@ -128,8 +128,8 @@ disk operation runs on a background thread, so the interface never blocks.
 
 ## License
 
-[MIT](LICENSE) — © GenomeForge contributors.
+[MIT](LICENSE). © GenomeForge contributors.
 
 Scoring methods (Doench on-target, CFD off-target, PGS percentiles) are transparent, documented
 decision-support estimates, not a clinical pipeline. GenomeForge is for learning, research, and design
-exploration — not medical advice.
+exploration, not medical advice.

@@ -6,26 +6,26 @@ semantic versioning.
 
 ## [Unreleased]
 
-## [0.1.1] — 2026-06-10
+## [0.1.1] - 2026-06-10
 
 ### Added
-- **GRCh37 ⇄ GRCh38 liftover** — convert a variant's coordinates between assemblies
+- **GRCh37 ⇄ GRCh38 liftover:** convert a variant's coordinates between assemblies
   (via the Ensembl assembly-map API).
-- **More CRISPR nucleases** — SpCas9-NG, SpRY, and Cas12a (Cpf1) alongside SpCas9,
+- **More CRISPR nucleases:** SpCas9-NG, SpRY, and Cas12a (Cpf1) alongside SpCas9,
   with correct PAM placement and protospacer lengths.
-- **Base- and prime-editing outcome simulation** — CBE (C→T) / ABE (A→G) window
+- **Base- and prime-editing outcome simulation:** CBE (C→T) / ABE (A→G) window
   outcomes for a guide, and a transparent prime-editing installed-edit preview.
-- **Plasmid assembly simulation** — Golden-Gate / restriction-ligation and Gibson
+- **Plasmid assembly simulation:** Golden-Gate / restriction-ligation and Gibson
   assembly from fragments, into a circular product.
-- **Variant "Learn more" additions** — gnomAD variant link and gene-level PubMed /
+- **Variant "Learn more" additions:** gnomAD variant link and gene-level PubMed /
   ClinVar shortcuts.
-- **Quick-of-life** — drag-and-drop file open, a recent-files list, CSV export of the
+- **Quality of life:** drag-and-drop file open, a recent-files list, CSV export of the
   variant table, copy buttons, an About dialog, and a keyboard-shortcuts reference.
-- **Update check** — compares the running version against the latest GitHub release.
-- **Project infrastructure** — `CHANGELOG.md`, `CONTRIBUTING.md`, issue templates, and a
+- **Update check:** compares the running version against the latest GitHub release.
+- **Project infrastructure:** `CHANGELOG.md`, `CONTRIBUTING.md`, issue templates, and a
   `scripts/bump-version.sh` that sets the version everywhere it is declared.
 
-## [0.1.0] — 2026-06-10
+## [0.1.0] - 2026-06-10
 
 First multiplatform release (Windows, Linux/Flatpak, macOS).
 

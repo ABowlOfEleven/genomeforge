@@ -20,7 +20,7 @@ Requires the free **WiX Toolset v5** (.NET tool; needs the .NET SDK):
 ```sh
 dotnet tool install --global wix --version 5.0.2      # one-time
 ```
-> Note: WiX v6/v7 require accepting a paid "Open Source Maintenance Fee" EULA — stay on v5.
+> Note: WiX v6/v7 require accepting a paid "Open Source Maintenance Fee" EULA, so stay on v5.
 
 Then, from the repo root:
 ```sh
@@ -82,14 +82,14 @@ lipo -create -output GenomeForge \
 `packaging/macos/Info.plist` is the bundle plist; the CI release job assembles
 `GenomeForge.app` (with an `.icns` built from `assets/icon.png`), ad-hoc signs it
 (`codesign -s -`, so the arm64 slice launches), and wraps it in a `.dmg`. Builds are
-**unsigned/unnotarized** — Gatekeeper will warn; right-click ▸ Open (or
+**unsigned/unnotarized**, so Gatekeeper will warn; right-click ▸ Open (or
 `xattr -dr com.apple.quarantine GenomeForge.app`) to run.
 
 ## Continuous integration & releases
 
-- **`.github/workflows/ci.yml`** — builds, tests, and runs `clippy -D warnings` on
+- **`.github/workflows/ci.yml`**: builds, tests, and runs `clippy -D warnings` on
   Windows, Linux, and macOS for every push to `main` and every PR.
-- **`.github/workflows/release.yml`** — on a `v*` tag (or the manual "Run workflow"
+- **`.github/workflows/release.yml`**: on a `v*` tag (or the manual "Run workflow"
   button), re-verifies on each OS and, only if that passes, builds and publishes a single
   GitHub Release with: Windows `.exe` + `.msi`, Linux `.tar.gz` + Flatpak bundle, and a
   universal macOS `.dmg`. Cut a release with:
