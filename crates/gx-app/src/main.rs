@@ -8,6 +8,7 @@ mod crispr;
 mod document;
 mod health;
 mod phenotype;
+mod pgx;
 mod plasmid;
 mod settings;
 mod theme;

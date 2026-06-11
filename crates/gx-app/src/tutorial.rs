@@ -11,6 +11,7 @@ pub enum Section {
     Crispr,
     Phenotype,
     Ancestry,
+    Pharma,
 }
 
 pub struct Step {
@@ -25,6 +26,7 @@ pub fn title(section: Section) -> &'static str {
         Section::Crispr => "CRISPR studio",
         Section::Phenotype => "Phenotype & risk",
         Section::Ancestry => "Ancestry & lineage",
+        Section::Pharma => "Pharmacogenomics",
     }
 }
 
@@ -35,6 +37,7 @@ pub fn steps(section: Section) -> &'static [Step] {
         Section::Crispr => CRISPR,
         Section::Phenotype => PHENOTYPE,
         Section::Ancestry => ANCESTRY,
+        Section::Pharma => PHARMA,
     }
 }
 
@@ -197,6 +200,34 @@ const ANCESTRY: &[Step] = &[
         body: "A haplogroup tells you where one single line came from, deep in the past. It is \
                not your whole ancestry (you have thousands of ancestors), and it says nothing \
                about health. People without a Y chromosome will see only a maternal result.",
+    },
+];
+
+const PHARMA: &[Step] = &[
+    Step {
+        title: "Welcome to pharmacogenomics",
+        body: "Pharmacogenomics is how your genes affect the way your body handles certain \
+               medicines. This workspace reads the relevant variants in your file and \
+               summarises what clinical guidelines say about them.",
+    },
+    Step {
+        title: "Reading a result",
+        body: "Each gene shows a diplotype (the two gene copies you carry, like *1/*2) and a \
+               phenotype (such as 'intermediate metabolizer'). That is a description of \
+               processing speed, not a diagnosis. Click a gene to see drug-specific notes.",
+    },
+    Step {
+        title: "Coverage and limits",
+        body: "Consumer chips read only some of the variants that define each gene, and cannot \
+               see structural changes (whole-gene deletions or duplications). CYP2D6 especially \
+               is only partly callable, so its result is flagged. A 'normal' call never rules \
+               out variants that were not measured.",
+    },
+    Step {
+        title: "This is not medical advice",
+        body: "Nothing here should be used to start, stop, or change any medication or dose. \
+               It is educational context. Real decisions need a clinician or pharmacist and \
+               validated clinical testing.",
     },
 ];
 

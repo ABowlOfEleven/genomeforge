@@ -14,6 +14,7 @@ use crate::browser::{self, BrowserData};
 use crate::crispr::CrisprState;
 use crate::document::{Document, RefData};
 use crate::health;
+use crate::pgx::PgxState;
 use crate::phenotype::{PhenoRequest, PhenotypeState};
 use crate::plasmid::PlasmidState;
 use crate::settings::Settings;
@@ -33,6 +34,7 @@ pub enum Tool {
     Crispr,
     Phenotype,
     Ancestry,
+    Pharma,
 }
 
 impl Tool {
@@ -43,6 +45,7 @@ impl Tool {
             Tool::Crispr => Section::Crispr,
             Tool::Phenotype => Section::Phenotype,
             Tool::Ancestry => Section::Ancestry,
+            Tool::Pharma => Section::Pharma,
         }
     }
 }
@@ -61,6 +64,7 @@ pub struct GenomeForgeApp {
     crispr: CrisprState,
     phenotype: PhenotypeState,
     ancestry: AncestryState,
+    pgx: PgxState,
     tool: Tool,
     show_tutorial: bool,
     tutorial_section: Section,
@@ -141,6 +145,7 @@ impl GenomeForgeApp {
             crispr: CrisprState::default(),
             phenotype: PhenotypeState::default(),
             ancestry: AncestryState::default(),
+            pgx: PgxState::default(),
             tool: Tool::Genome,
             show_tutorial: false,
             tutorial_section: Section::Genome,
@@ -274,6 +279,8 @@ impl GenomeForgeApp {
         self.phenotype = PhenotypeState::default();
         // Haplogroups are sample-specific too; recompute lazily for the new one.
         self.ancestry = AncestryState::default();
+        // Same for the pharmacogenomics report.
+        self.pgx = PgxState::default();
         let doc = Document::from_imported(imported, self.settings.assembly_override);
         match &doc {
             Document::Variants(v) => {
@@ -572,6 +579,17 @@ impl GenomeForgeApp {
                 .clicked()
             {
                 self.set_tool(Tool::Ancestry);
+            }
+            if ui
+                .add_enabled(
+                    has_variants,
+                    egui::Button::selectable(self.tool == Tool::Pharma, "Pharma"),
+                )
+                .on_hover_text("Pharmacogenomics: how your variants relate to drug response")
+                .on_disabled_hover_text("Load a genome (variant data) to enable")
+                .clicked()
+            {
+                self.set_tool(Tool::Pharma);
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1296,6 +1314,7 @@ impl GenomeForgeApp {
             Tool::Crispr => self.settings.seen_crispr,
             Tool::Phenotype => self.settings.seen_phenotype,
             Tool::Ancestry => self.settings.seen_ancestry,
+            Tool::Pharma => self.settings.seen_pharma,
         };
         if !already {
             match tool {
@@ -1304,6 +1323,7 @@ impl GenomeForgeApp {
                 Tool::Crispr => self.settings.seen_crispr = true,
                 Tool::Phenotype => self.settings.seen_phenotype = true,
                 Tool::Ancestry => self.settings.seen_ancestry = true,
+                Tool::Pharma => self.settings.seen_pharma = true,
             }
             self.open_tutorial(tool.section());
         }
@@ -1465,6 +1485,34 @@ impl GenomeForgeApp {
     fn ancestry_detail(&mut self, ui: &mut egui::Ui) {
         self.ensure_haplogroups();
         crate::ancestry::detail(ui, &self.ancestry, self.settings.tier);
+    }
+
+    /// Build the pharmacogenomics report once for the current document, lazily.
+    fn ensure_pgx(&mut self) {
+        if self.pgx.done {
+            return;
+        }
+        if let Some(doc) = self.document.as_ref().and_then(|d| d.variant_doc()) {
+            self.pgx.results = gx_pgx::report(&doc.store);
+            self.pgx.selected = (!self.pgx.results.is_empty()).then_some(0);
+            self.pgx.done = true;
+        }
+    }
+
+    fn pgx_sidebar(&mut self, ui: &mut egui::Ui) {
+        self.ensure_pgx();
+        let has_doc = self.document.as_ref().and_then(|d| d.variant_doc()).is_some();
+        crate::pgx::sidebar(ui, &mut self.pgx, has_doc, self.settings.tier);
+    }
+
+    fn pgx_central(&mut self, ui: &mut egui::Ui) {
+        self.ensure_pgx();
+        let has_doc = self.document.as_ref().and_then(|d| d.variant_doc()).is_some();
+        crate::pgx::central(ui, &self.pgx, has_doc, self.settings.tier);
+    }
+
+    fn pgx_detail(&mut self, ui: &mut egui::Ui) {
+        crate::pgx::detail(ui, self.settings.tier);
     }
 
     fn load_local_pgs(&mut self) {
@@ -1745,6 +1793,7 @@ impl eframe::App for GenomeForgeApp {
                         Tool::Crispr => self.crispr_sidebar(ui),
                         Tool::Phenotype => self.phenotype_sidebar(ui),
                         Tool::Ancestry => self.ancestry_sidebar(ui),
+                        Tool::Pharma => self.pgx_sidebar(ui),
                     });
             });
         egui::SidePanel::right("detail")
@@ -1759,6 +1808,7 @@ impl eframe::App for GenomeForgeApp {
                         Tool::Crispr => self.crispr_detail(ui),
                         Tool::Phenotype => self.phenotype_detail(ui),
                         Tool::Ancestry => self.ancestry_detail(ui),
+                        Tool::Pharma => self.pgx_detail(ui),
                     });
             });
 
@@ -1782,6 +1832,7 @@ impl eframe::App for GenomeForgeApp {
             Tool::Crispr => self.crispr_central(ui),
             Tool::Phenotype => self.phenotype_central(ui),
             Tool::Ancestry => self.ancestry_central(ui),
+            Tool::Pharma => self.pgx_central(ui),
         });
 
         if self.show_settings {

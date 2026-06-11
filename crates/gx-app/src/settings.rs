@@ -23,6 +23,7 @@ pub struct Settings {
     pub seen_crispr: bool,
     pub seen_phenotype: bool,
     pub seen_ancestry: bool,
+    pub seen_pharma: bool,
     /// Recently opened files (most recent first), for File ▸ Open Recent.
     #[serde(default)]
     pub recent_files: Vec<String>,
@@ -50,6 +51,7 @@ impl Default for Settings {
             seen_crispr: false,
             seen_phenotype: false,
             seen_ancestry: false,
+            seen_pharma: false,
             recent_files: Vec::new(),
         }
     }

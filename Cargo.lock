@@ -1635,6 +1635,7 @@ dependencies = [
  "gx-haplo",
  "gx-io",
  "gx-pgs",
+ "gx-pgx",
  "gx-plasmid",
  "log",
  "rfd",
@@ -1685,6 +1686,13 @@ version = "0.1.1"
 dependencies = [
  "gx-core",
  "serde",
+]
+
+[[package]]
+name = "gx-pgx"
+version = "0.1.1"
+dependencies = [
+ "gx-core",
 ]
 
 [[package]]
