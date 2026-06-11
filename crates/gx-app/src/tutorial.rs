@@ -10,6 +10,7 @@ pub enum Section {
     Plasmid,
     Crispr,
     Phenotype,
+    Ancestry,
 }
 
 pub struct Step {
@@ -23,6 +24,7 @@ pub fn title(section: Section) -> &'static str {
         Section::Plasmid => "Plasmid designer",
         Section::Crispr => "CRISPR studio",
         Section::Phenotype => "Phenotype & risk",
+        Section::Ancestry => "Ancestry & lineage",
     }
 }
 
@@ -32,6 +34,7 @@ pub fn steps(section: Section) -> &'static [Step] {
         Section::Plasmid => PLASMID,
         Section::Crispr => CRISPR,
         Section::Phenotype => PHENOTYPE,
+        Section::Ancestry => ANCESTRY,
     }
 }
 
@@ -167,6 +170,33 @@ const PHENOTYPE: &[Step] = &[
         body: "On the right, single variants ClinVar flags as clinically significant. Unlike a \
                PRS, one of these can matter on its own. None of this is medical advice; take real \
                questions to a clinician or genetic counsellor.",
+    },
+];
+
+const ANCESTRY: &[Step] = &[
+    Step {
+        title: "Welcome to ancestry & lineage",
+        body: "This workspace reads two special pieces of your genome: mitochondrial DNA, \
+               passed down the maternal line, and the Y chromosome, passed down the paternal \
+               line. Each traces one single ancestral path back through time.",
+    },
+    Step {
+        title: "Haplogroups",
+        body: "A haplogroup is a branch on the human family tree. Everyone on a branch shares \
+               an ancestor who carried a set of defining mutations. Yours are predicted right \
+               here on your computer, from the SNPs your file happens to include.",
+    },
+    Step {
+        title: "Why it is coarse",
+        body: "Consumer chips read only a fraction of the mtDNA and Y positions, so the result \
+               is a major branch (like 'U5' or 'R1b'), not a fine subclade. The confidence badge \
+               and marker count tell you how much support the call had.",
+    },
+    Step {
+        title: "What it does and does not say",
+        body: "A haplogroup tells you where one single line came from, deep in the past. It is \
+               not your whole ancestry (you have thousands of ancestors), and it says nothing \
+               about health. People without a Y chromosome will see only a maternal result.",
     },
 ];
 

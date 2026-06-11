@@ -26,6 +26,7 @@ flate2 = "1.1.9"
 gx-annotate = { version = "0.1.0", path = "../gx-annotate" }
 gx-core = { version = "0.1.0", path = "../gx-core" }
 gx-crispr = { version = "0.1.0", path = "../gx-crispr" }
+gx-haplo = { version = "0.1.0", path = "../gx-haplo" }
 gx-io = { version = "0.1.0", path = "../gx-io" }
 gx-pgs = { version = "0.1.0", path = "../gx-pgs" }
 gx-plasmid = { version = "0.1.0", path = "../gx-plasmid" }

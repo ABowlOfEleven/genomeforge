@@ -9,6 +9,7 @@ use egui_extras::{Column, TableBuilder};
 
 use gx_core::{Assembly, GenomicRange, Strand};
 
+use crate::ancestry::AncestryState;
 use crate::browser::{self, BrowserData};
 use crate::crispr::CrisprState;
 use crate::document::{Document, RefData};
@@ -31,6 +32,7 @@ pub enum Tool {
     Plasmid,
     Crispr,
     Phenotype,
+    Ancestry,
 }
 
 impl Tool {
@@ -40,6 +42,7 @@ impl Tool {
             Tool::Plasmid => Section::Plasmid,
             Tool::Crispr => Section::Crispr,
             Tool::Phenotype => Section::Phenotype,
+            Tool::Ancestry => Section::Ancestry,
         }
     }
 }
@@ -57,6 +60,7 @@ pub struct GenomeForgeApp {
     plasmid: Option<PlasmidState>,
     crispr: CrisprState,
     phenotype: PhenotypeState,
+    ancestry: AncestryState,
     tool: Tool,
     show_tutorial: bool,
     tutorial_section: Section,
@@ -136,6 +140,7 @@ impl GenomeForgeApp {
             plasmid: None,
             crispr: CrisprState::default(),
             phenotype: PhenotypeState::default(),
+            ancestry: AncestryState::default(),
             tool: Tool::Genome,
             show_tutorial: false,
             tutorial_section: Section::Genome,
@@ -267,6 +272,8 @@ impl GenomeForgeApp {
         self.selection = None;
         // PRS results belong to the previous sample — never carry them over.
         self.phenotype = PhenotypeState::default();
+        // Haplogroups are sample-specific too; recompute lazily for the new one.
+        self.ancestry = AncestryState::default();
         let doc = Document::from_imported(imported, self.settings.assembly_override);
         match &doc {
             Document::Variants(v) => {
@@ -554,6 +561,17 @@ impl GenomeForgeApp {
                 .clicked()
             {
                 self.set_tool(Tool::Phenotype);
+            }
+            if ui
+                .add_enabled(
+                    has_variants,
+                    egui::Button::selectable(self.tool == Tool::Ancestry, "Ancestry"),
+                )
+                .on_hover_text("Predicted maternal & paternal haplogroups")
+                .on_disabled_hover_text("Load a genome (variant data) to enable")
+                .clicked()
+            {
+                self.set_tool(Tool::Ancestry);
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1277,6 +1295,7 @@ impl GenomeForgeApp {
             Tool::Plasmid => self.settings.seen_plasmid,
             Tool::Crispr => self.settings.seen_crispr,
             Tool::Phenotype => self.settings.seen_phenotype,
+            Tool::Ancestry => self.settings.seen_ancestry,
         };
         if !already {
             match tool {
@@ -1284,6 +1303,7 @@ impl GenomeForgeApp {
                 Tool::Plasmid => self.settings.seen_plasmid = true,
                 Tool::Crispr => self.settings.seen_crispr = true,
                 Tool::Phenotype => self.settings.seen_phenotype = true,
+                Tool::Ancestry => self.settings.seen_ancestry = true,
             }
             self.open_tutorial(tool.section());
         }
@@ -1417,6 +1437,34 @@ impl GenomeForgeApp {
         let tier = self.settings.tier;
         let doc = self.document.as_ref().and_then(|d| d.variant_doc());
         crate::phenotype::detail(ui, doc, tier);
+    }
+
+    /// Classify maternal/paternal haplogroups once for the current document.
+    /// Cheap (a few hundred lookups), so we run it lazily on first view and cache.
+    fn ensure_haplogroups(&mut self) {
+        if self.ancestry.haplo_done {
+            return;
+        }
+        if let Some(doc) = self.document.as_ref().and_then(|d| d.variant_doc()) {
+            self.ancestry.maternal = gx_haplo::classify_maternal(&doc.store);
+            self.ancestry.paternal = gx_haplo::classify_paternal(&doc.store);
+            self.ancestry.haplo_done = true;
+        }
+    }
+
+    fn ancestry_sidebar(&mut self, ui: &mut egui::Ui) {
+        crate::ancestry::sidebar(ui, self.settings.tier);
+    }
+
+    fn ancestry_central(&mut self, ui: &mut egui::Ui) {
+        self.ensure_haplogroups();
+        let has_doc = self.document.as_ref().and_then(|d| d.variant_doc()).is_some();
+        crate::ancestry::central(ui, &self.ancestry, has_doc, self.settings.tier);
+    }
+
+    fn ancestry_detail(&mut self, ui: &mut egui::Ui) {
+        self.ensure_haplogroups();
+        crate::ancestry::detail(ui, &self.ancestry, self.settings.tier);
     }
 
     fn load_local_pgs(&mut self) {
@@ -1696,6 +1744,7 @@ impl eframe::App for GenomeForgeApp {
                         Tool::Plasmid => self.plasmid_sidebar(ui),
                         Tool::Crispr => self.crispr_sidebar(ui),
                         Tool::Phenotype => self.phenotype_sidebar(ui),
+                        Tool::Ancestry => self.ancestry_sidebar(ui),
                     });
             });
         egui::SidePanel::right("detail")
@@ -1709,6 +1758,7 @@ impl eframe::App for GenomeForgeApp {
                         Tool::Plasmid => self.plasmid_detail(ui),
                         Tool::Crispr => self.crispr_detail(ui),
                         Tool::Phenotype => self.phenotype_detail(ui),
+                        Tool::Ancestry => self.ancestry_detail(ui),
                     });
             });
 
@@ -1731,6 +1781,7 @@ impl eframe::App for GenomeForgeApp {
             Tool::Plasmid => self.plasmid_central(ui),
             Tool::Crispr => self.crispr_central(ui),
             Tool::Phenotype => self.phenotype_central(ui),
+            Tool::Ancestry => self.ancestry_central(ui),
         });
 
         if self.show_settings {

@@ -1632,6 +1632,7 @@ dependencies = [
  "gx-annotate",
  "gx-core",
  "gx-crispr",
+ "gx-haplo",
  "gx-io",
  "gx-pgs",
  "gx-plasmid",
@@ -1658,6 +1659,13 @@ dependencies = [
  "gx-core",
  "gx-plasmid",
  "serde",
+]
+
+[[package]]
+name = "gx-haplo"
+version = "0.1.1"
+dependencies = [
+ "gx-core",
 ]
 
 [[package]]
