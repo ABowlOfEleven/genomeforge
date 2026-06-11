@@ -8,8 +8,8 @@
 #
 # Bump `version` + `sha256` on each release (sha256 of the .dmg).
 cask "genomeforge" do
-  version "0.1.1"
-  sha256 "80f8a368adf58802dea69ec72d54b2d48ed7122cc323027f3e2f9e2480cfdc19"
+  version "0.1.2"
+  sha256 "7395a4a30c6c2d1c8bf5fe75eaab22ccb96995832da2e3101c97227f2a519836"
 
   url "https://github.com/ABowlOfEleven/genomeforge/releases/download/v#{version}/GenomeForge-#{version}-macos-universal.dmg",
       verified: "github.com/ABowlOfEleven/genomeforge/"

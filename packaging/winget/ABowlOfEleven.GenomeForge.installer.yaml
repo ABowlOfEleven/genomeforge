@@ -1,5 +1,5 @@
 PackageIdentifier: ABowlOfEleven.GenomeForge
-PackageVersion: 0.1.1
+PackageVersion: 0.1.2
 InstallerLocale: en-US
 Platform:
   - Windows.Desktop
@@ -12,7 +12,7 @@ InstallModes:
 UpgradeBehavior: install
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/ABowlOfEleven/genomeforge/releases/download/v0.1.1/GenomeForge-0.1.1-x64.msi
-    InstallerSha256: 0757E3779765C98EE74B70CE6F0F44147F9ED7113FD1EC76916E0C2F05E4CD7E
+    InstallerUrl: https://github.com/ABowlOfEleven/genomeforge/releases/download/v0.1.2/GenomeForge-0.1.2-x64.msi
+    InstallerSha256: 0D66D97A20C87B21BC0915DBE93814F8E6FACEBEFD24998CAC13A376885CEFC4
 ManifestType: installer
 ManifestVersion: 1.6.0

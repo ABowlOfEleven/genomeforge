@@ -10,8 +10,8 @@ fork of `microsoft/winget-pkgs`, then opened as a PR. The easiest path is
 ```pwsh
 winget install wingetcreate
 wingetcreate update ABowlOfEleven.GenomeForge `
-  --version 0.1.1 `
-  --urls https://github.com/ABowlOfEleven/genomeforge/releases/download/v0.1.1/GenomeForge-0.1.1-x64.msi `
+  --version 0.1.2 `
+  --urls https://github.com/ABowlOfEleven/genomeforge/releases/download/v0.1.2/GenomeForge-0.1.2-x64.msi `
   --submit
 ```
 
