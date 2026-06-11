@@ -38,7 +38,7 @@ pub fn steps(section: Section) -> &'static [Step] {
 const GENOME: &[Step] = &[
     Step {
         title: "Welcome to the genome browser",
-        body: "This is where you explore a genome — yours or anyone's. Open a file with \
+        body: "This is where you explore a genome, yours or anyone's. Open a file with \
                File ▸ Open: a 23andMe/AncestryDNA download, a VCF from sequencing, or a \
                FASTA/GenBank sequence. Your raw data never leaves your computer.",
     },
@@ -52,7 +52,7 @@ const GENOME: &[Step] = &[
     Step {
         title: "Variants and colour",
         body: "Each lollipop is a position where your DNA was read. Colour shows its ClinVar \
-               clinical significance — red = pathogenic, green = benign, yellow = uncertain. \
+               clinical significance: red = pathogenic, green = benign, yellow = uncertain. \
                Click one to see its full annotation on the right.",
     },
     Step {
@@ -60,12 +60,12 @@ const GENOME: &[Step] = &[
         body: "Use the search box for a gene name (BRCA1), an rsID (rs6025), or a position \
                (17:43,044,295). The sidebar's 'Common health SNPs' list jumps straight to \
                well-known variants (APOE, Factor V Leiden, MTHFR…). The variant table at the \
-               bottom is filterable — try 'Notable only' to see clinically meaningful variants.",
+               bottom is filterable. Try 'Notable only' to see clinically meaningful variants.",
     },
     Step {
         title: "A note on the science",
         body: "Annotations come from public databases (ClinVar, gnomAD, dbSNP) via \
-               MyVariant.info, cached locally. This is a research & learning tool — not \
+               MyVariant.info, cached locally. This is a research & learning tool, not \
                medical advice. Talk to a clinician or genetic counsellor about real results.",
     },
 ];
@@ -86,14 +86,14 @@ const PLASMID: &[Step] = &[
     Step {
         title: "Restriction sites & unique cutters",
         body: "Restriction enzymes cut DNA at specific sequences. 'Unique cutters' (in the \
-               sidebar) cut the plasmid exactly once — those are the handy ones for cloning, \
+               sidebar) cut the plasmid exactly once; those are the handy ones for cloning, \
                because they give you a single, predictable place to insert DNA.",
     },
     Step {
         title: "ORFs, translation & primers",
         body: "ORFs are stretches that could encode protein (ATG…stop). Click a feature or \
                ORF to translate it and read the protein. Selecting a feature also shows its \
-               melting temperature and GC content — useful when designing primers.",
+               melting temperature and GC content, useful when designing primers.",
     },
 ];
 
@@ -119,7 +119,7 @@ const CRISPR: &[Step] = &[
     Step {
         title: "Off-targets & specificity",
         body: "Cas9 can also cut places that *almost* match the guide. The studio scores \
-               specificity — mismatches near the PAM (the 'seed') matter most. It searches the \
+               specificity: mismatches near the PAM (the 'seed') matter most. It searches the \
                target by default; load a reference FASTA (a chromosome or whole genome) under \
                'Off-target reference' to check genome-wide.",
     },
@@ -132,7 +132,7 @@ const CRISPR: &[Step] = &[
     Step {
         title: "Use responsibly",
         body: "Scores here are transparent decision-support estimates, not a clinical pipeline. \
-               Genome editing of humans is tightly regulated — this tool is for learning, \
+               Genome editing of humans is tightly regulated; this tool is for learning, \
                research, and design exploration.",
     },
 ];
@@ -140,7 +140,7 @@ const CRISPR: &[Step] = &[
 const PHENOTYPE: &[Step] = &[
     Step {
         title: "Phenotype & risk",
-        body: "Most traits — height, common disease risk — are shaped by thousands of genetic \
+        body: "Most traits (height, common disease risk) are shaped by thousands of genetic \
                variants, each with a tiny effect. A polygenic score (PRS) adds them up to estimate \
                your genetic tendency. It's a probability, never a diagnosis.",
     },
@@ -148,24 +148,24 @@ const PHENOTYPE: &[Step] = &[
         title: "Fetching a score",
         body: "Pick an example score or enter any PGS Catalog ID (like PGS000001), or load a \
                scoring file from disk. GenomeForge downloads it, matches its variants to your \
-               genome, and computes your score — handling strand flips automatically.",
+               genome, and computes your score, handling strand flips automatically.",
     },
     Step {
         title: "Reading the result",
-        body: "'Coverage' is how many of the score's variants your data actually contains — \
+        body: "'Coverage' is how many of the score's variants your data actually contains, \
                consumer chips cover less than whole-genome sequencing, so watch for low coverage. \
                When the file includes population frequencies, you also get an estimated percentile.",
     },
     Step {
         title: "Big caveats",
         body: "Percentiles use a normal approximation and assume the reference population is like \
-               you — most scores were trained on European-ancestry data and transfer poorly to \
+               you. Most scores were trained on European-ancestry data and transfer poorly to \
                others. Environment and lifestyle usually matter as much as genetics.",
     },
     Step {
         title: "Mendelian findings",
         body: "On the right, single variants ClinVar flags as clinically significant. Unlike a \
-               PRS, one of these can matter on its own. None of this is medical advice — take real \
+               PRS, one of these can matter on its own. None of this is medical advice; take real \
                questions to a clinician or genetic counsellor.",
     },
 ];
@@ -177,7 +177,7 @@ pub fn show(ctx: &egui::Context, section: Section, step: &mut usize, open: &mut 
     *step = (*step).min(n - 1);
 
     let mut keep_open = true;
-    egui::Window::new(format!("Tutorial — {}", title(section)))
+    egui::Window::new(format!("Tutorial: {}", title(section)))
         .open(&mut keep_open)
         .collapsible(false)
         .resizable(false)

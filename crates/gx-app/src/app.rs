@@ -106,7 +106,7 @@ impl GenomeForgeApp {
                 startup_requests += 1;
                 format!("Importing {}…", p.display())
             }
-            None => "Ready — open a genome file to begin (File ▸ Open / Ctrl+O).".to_string(),
+            None => "Ready. Open a genome file to begin (File ▸ Open / Ctrl+O).".to_string(),
         };
         if let Some(i) = args.iter().position(|a| a == "--pgs")
             && let Some(id) = args.get(i + 1)
@@ -207,7 +207,7 @@ impl GenomeForgeApp {
                             result.percentile
                         );
                         self.phenotype.status = format!(
-                            "{} — {}/{} variants matched",
+                            "{}: {}/{} variants matched",
                             sf.trait_name, result.matched, result.total
                         );
                         self.phenotype.results.push(result);
@@ -272,7 +272,7 @@ impl GenomeForgeApp {
             }
             Document::Sequences(s) => {
                 self.status = format!(
-                    "Loaded {} sequence record(s) — plasmid designer ready.",
+                    "Loaded {} sequence record(s). Plasmid designer ready.",
                     s.len()
                 );
             }
@@ -445,7 +445,7 @@ impl GenomeForgeApp {
                 0.0,
                 egui::TextFormat::simple(egui::FontId::proportional(15.0), tokens::ACCENT),
             );
-            ui.label(job).on_hover_text("GenomeForge — local genome studio");
+            ui.label(job).on_hover_text("GenomeForge: local genome studio");
             ui.separator();
 
             ui.menu_button("File", |ui| {
@@ -507,7 +507,7 @@ impl GenomeForgeApp {
                     egui::Button::selectable(self.tool == Tool::Genome, "Genome"),
                 )
                 .on_hover_text("Browse your genome and explore variants")
-                .on_disabled_hover_text("A sequence file is loaded — open variant data to use this")
+                .on_disabled_hover_text("A sequence file is loaded; open variant data to use this")
                 .clicked()
             {
                 self.set_tool(Tool::Genome);
@@ -616,7 +616,7 @@ impl GenomeForgeApp {
         if !online {
             ui.label(
                 egui::RichText::new(
-                    "Offline — gene models and new annotations won't load. Enable Online in Settings.",
+                    "Offline: gene models and new annotations won't load. Enable Online in Settings.",
                 )
                 .size(11.0)
                 .color(palette::VUS),
@@ -718,7 +718,7 @@ impl GenomeForgeApp {
                             ui,
                             tier,
                             "Well-known SNPs people often look up. Click one to jump to it in your \
-                             genome — if your data doesn't include it, you'll see a note. These are \
+                             genome. If your data doesn't include it, you'll see a note. These are \
                              starting points for learning, not a medical screen.",
                         );
                         let mut pick = None;
@@ -730,7 +730,7 @@ impl GenomeForgeApp {
                             };
                             if ui
                                 .button(label)
-                                .on_hover_text(format!("{} · {} — jump to this SNP", s.rsid, s.gene))
+                                .on_hover_text(format!("{} · {}: jump to this SNP", s.rsid, s.gene))
                                 .clicked()
                             {
                                 pick = Some(s.rsid.to_string());
@@ -787,11 +787,11 @@ impl GenomeForgeApp {
                 None => {
                     ui.label("Annotation");
                     let msg = if v.rsid.is_none() {
-                        "no rsID — can't annotate"
+                        "no rsID, can't annotate"
                     } else if online {
                         "fetching…"
                     } else {
-                        "offline — enable Online in Settings"
+                        "offline; enable Online in Settings"
                     };
                     ui.label(egui::RichText::new(msg).color(palette::RULER_TEXT));
                     ui.end_row();
@@ -855,7 +855,7 @@ impl GenomeForgeApp {
             ui,
             tier,
             "Research papers from NIH's PubMed that mention this variant. A starting point for \
-             reading the primary literature — quality and relevance vary.",
+             reading the primary literature. Quality and relevance vary.",
         );
         // Clone the small entry so the match doesn't hold a borrow of
         // `self.literature` while the button arm mutates it / calls `self.send`.
@@ -1021,11 +1021,11 @@ impl GenomeForgeApp {
                                 clicked = Some(a.rsid.clone());
                             }
                         });
-                        r.col(|ui| { ui.label(a.gene.as_deref().unwrap_or("—")); });
+                        r.col(|ui| { ui.label(a.gene.as_deref().unwrap_or("-")); });
                         r.col(|ui| {
                             match &a.clinical_significance {
                                 Some(s) => { ui.label(egui::RichText::new(s).color(theme::sig_color(s))); }
-                                None => { ui.label("—"); }
+                                None => { ui.label("-"); }
                             }
                         });
                         r.col(|ui| {
@@ -1123,7 +1123,7 @@ impl GenomeForgeApp {
             .resizable(false)
             .collapsible(false)
             .show(ctx, |ui| {
-                ui.checkbox(&mut self.settings.online, "Online — query live databases");
+                ui.checkbox(&mut self.settings.online, "Online: query live databases");
                 ui.horizontal(|ui| {
                     ui.label("MyVariant API key:");
                     ui.text_edit_singleline(&mut self.settings.api_key);
@@ -1291,7 +1291,7 @@ impl GenomeForgeApp {
                     name
                 };
                 self.crispr.set_reference(label, seq);
-                self.status = format!("Loaded off-target reference — {total} bp.");
+                self.status = format!("Loaded off-target reference: {total} bp.");
             }
             Err(e) => self.status = format!("⚠ Reference load failed: {e}"),
         }
@@ -1353,7 +1353,7 @@ impl GenomeForgeApp {
                 if let Some(doc) = self.document.as_ref().and_then(|d| d.variant_doc()) {
                     let result = gx_pgs::apply(&sf, &doc.store);
                     self.phenotype.status =
-                        format!("{} — {}/{} matched", sf.trait_name, result.matched, result.total);
+                        format!("{}: {}/{} matched", sf.trait_name, result.matched, result.total);
                     self.phenotype.results.push(result);
                     self.phenotype.selected = Some(self.phenotype.results.len() - 1);
                 } else {

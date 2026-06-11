@@ -31,9 +31,9 @@ impl Tier {
 
     pub fn blurb(self) -> &'static str {
         match self {
-            Tier::Beginner => "Plain-language, guided — for students and the curious.",
+            Tier::Beginner => "Plain-language, guided, for students and the curious.",
             Tier::Intermediate => "More detail, with explanations of the numbers.",
-            Tier::Expert => "Dense and complete — for biologists & professionals.",
+            Tier::Expert => "Dense and complete, for biologists & professionals.",
         }
     }
 
@@ -110,7 +110,7 @@ pub fn explain_beginner(ui: &mut egui::Ui, tier: Tier, text: &str) {
 /// The standard "not medical advice" footer, used across workspaces.
 pub fn disclaimer(ui: &mut egui::Ui) {
     ui.label(
-        RichText::new("⚠ Research / educational use only — not medical advice.")
+        RichText::new("⚠ Research / educational use only. Not medical advice.")
             .italics()
             .size(11.0)
             .color(palette::VUS),
@@ -124,7 +124,7 @@ pub fn tier_picker(ui: &mut egui::Ui, tier: &mut Tier) -> bool {
         .selected_text(format!("Experience: {}", tier.label()))
         .show_ui(ui, |ui| {
             for t in Tier::all() {
-                ui.selectable_value(tier, t, format!("{} — {}", t.label(), t.blurb()));
+                ui.selectable_value(tier, t, format!("{}: {}", t.label(), t.blurb()));
             }
         });
     *tier != before

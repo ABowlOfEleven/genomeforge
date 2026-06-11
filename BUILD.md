@@ -55,19 +55,23 @@ the `.desktop` entry and the AppStream `.metainfo.xml`, both named with the app 
 
 ### Flatpak
 Manifest: `packaging/flatpak/io.github.abowlofeleven.GenomeForge.yml`. It builds the app
-**inside** the freedesktop SDK (24.08) with the `rust-stable` extension, OFFLINE, from
-vendored cargo sources. Generate those once with
-[flatpak-builder-tools](https://github.com/flatpak/flatpak-builder-tools):
+**inside** the freedesktop SDK (24.08) with **network access**: the build installs the
+pinned Rust toolchain (1.96.0) via `rustup` and lets cargo fetch crates from crates.io.
+(The SDK's bundled `rust-stable` extension is 1.89, too old for egui 0.34's 1.92 MSRV, so
+that route is not used.) No vendoring or `cargo-sources.json` is needed:
 
 ```sh
-python flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json
-flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08 \
-                          org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 flatpak-builder --user --install --force-clean build-dir \
   packaging/flatpak/io.github.abowlofeleven.GenomeForge.yml
 flatpak run io.github.abowlofeleven.GenomeForge
 ```
 File access is portal-mediated, so the sandbox needs no broad `--filesystem` permission.
+
+> The network build is simple and fine for a self-hosted bundle, but **not Flathub-compliant**
+> (Flathub requires fully offline builds). Submitting there later would mean switching back to
+> vendored sources with a newer toolchain extension. The CI release job marks the Flatpak step
+> `continue-on-error`, so a Flatpak hiccup never blocks a release.
 
 ## macOS
 

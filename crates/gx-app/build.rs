@@ -12,10 +12,10 @@ fn main() {
         res.set("ProductName", "GenomeForge");
         res.set(
             "FileDescription",
-            "GenomeForge — genome browser & variant explorer",
+            "GenomeForge: genome browser & variant explorer",
         );
         res.set("CompanyName", "GenomeForge");
-        res.set("LegalCopyright", "GenomeForge contributors — MIT");
+        res.set("LegalCopyright", "GenomeForge contributors (MIT)");
         if let Err(e) = res.compile() {
             println!("cargo:warning=icon/metadata embed skipped: {e}");
         }

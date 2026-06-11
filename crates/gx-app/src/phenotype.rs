@@ -83,7 +83,7 @@ pub fn sidebar(ui: &mut egui::Ui, state: &mut PhenotypeState, tier: Tier) -> Opt
     ui.label(egui::RichText::new("Computed scores").strong());
     if state.results.is_empty() {
         ui.label(
-            egui::RichText::new("None yet — fetch one above.")
+            egui::RichText::new("None yet. Fetch one above.")
                 .size(11.0)
                 .color(palette::RULER_TEXT),
         );
@@ -132,7 +132,7 @@ pub fn central(ui: &mut egui::Ui, state: &PhenotypeState, tier: Tier) {
     if cov < 50.0 {
         ui.label(
             egui::RichText::new(
-                "⚠ Low coverage — your file is missing many of this score's variants, so the \
+                "⚠ Low coverage: your file is missing many of this score's variants, so the \
                  result is unreliable. Whole-genome data covers far more.",
             )
             .color(palette::VUS),
@@ -177,7 +177,7 @@ pub fn central(ui: &mut egui::Ui, state: &PhenotypeState, tier: Tier) {
                 ui,
                 tier,
                 "This scoring file didn't include population allele frequencies, so we can't place \
-                 you on a percentile — only the raw number, which is only meaningful compared to a \
+                 you on a percentile, only the raw number, which is only meaningful compared to a \
                  reference population.",
             );
         }
@@ -205,7 +205,7 @@ pub fn detail(ui: &mut egui::Ui, doc: Option<&VariantDoc>, tier: Tier) {
         ui,
         tier,
         "These are single variants ClinVar flags as clinically significant. Unlike a polygenic \
-         score, one of these can matter on its own — discuss any with a clinician.",
+         score, one of these can matter on its own; discuss any with a clinician.",
     );
 
     let Some(doc) = doc else {

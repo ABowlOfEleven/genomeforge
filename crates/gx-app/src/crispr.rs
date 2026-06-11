@@ -312,7 +312,7 @@ fn aav_ui(ui: &mut egui::Ui, aav: &mut AavCargo, tier: Tier) {
     ui.add(bar);
     if aav.fits() {
         ui.label(
-            egui::RichText::new(format!("✓ Fits — {} bp headroom", aav.headroom()))
+            egui::RichText::new(format!("✓ Fits, {} bp headroom", aav.headroom()))
                 .color(palette::BENIGN),
         );
     } else {
@@ -514,7 +514,7 @@ pub fn detail(ui: &mut egui::Ui, state: &mut CrisprState, tier: Tier) {
                     }
                     if seq.len() > 50_000_000 {
                         ui.label(
-                            egui::RichText::new("Large reference — search may take a few seconds.")
+                            egui::RichText::new("Large reference, search may take a few seconds.")
                                 .size(11.0)
                                 .color(palette::VUS),
                         );
@@ -607,7 +607,7 @@ fn edit_sim(ui: &mut egui::Ui, state: &mut CrisprState, g: &Guide, tier: Tier) {
                 if !shown_window {
                     ui.label(
                         egui::RichText::new(format!(
-                            "Edit window: protospacer positions {}–{}",
+                            "Edit window: protospacer positions {}-{}",
                             out.window.0 + 1,
                             out.window.1
                         ))
@@ -674,7 +674,7 @@ fn show_edit(ui: &mut egui::Ui, before: &str, after: &str, frameshift: Option<bo
     );
     match frameshift {
         Some(true) => {
-            ui.label(egui::RichText::new("⚠ frameshift — likely disrupts the protein").color(palette::PATHOGENIC));
+            ui.label(egui::RichText::new("⚠ frameshift, likely disrupts the protein").color(palette::PATHOGENIC));
         }
         Some(false) => {
             ui.label(egui::RichText::new("in-frame change").color(palette::BENIGN));

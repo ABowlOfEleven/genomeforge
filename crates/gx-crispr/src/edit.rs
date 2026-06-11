@@ -37,7 +37,7 @@ pub fn nhej_deletion(seq: &[u8], cut: usize, del_len: usize) -> EditPreview {
     let after = &edited[w0.min(edited.len())..ew1];
 
     EditPreview {
-        description: format!("NHEJ — {del_len} bp deletion at cut site {}", cut + 1),
+        description: format!("NHEJ: {del_len} bp deletion at cut site {}", cut + 1),
         before: String::from_utf8_lossy(before).into_owned(),
         after: String::from_utf8_lossy(after).into_owned(),
         frameshift: Some(del_len % 3 != 0),
@@ -64,7 +64,7 @@ pub fn hdr_replace(seq: &[u8], start: usize, end: usize, donor: &[u8]) -> EditPr
 
     EditPreview {
         description: format!(
-            "HDR — replace {}..{} ({} bp) with donor ({} bp)",
+            "HDR: replace {}..{} ({} bp) with donor ({} bp)",
             start + 1,
             end,
             end - start,

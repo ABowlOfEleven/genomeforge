@@ -224,7 +224,7 @@ fn draw_variants(
         painter.text(
             rect.center(),
             Align2::CENTER_CENTER,
-            "Open a genome file (File ▸ Open) — drag to pan, scroll to zoom",
+            "Open a genome file (File ▸ Open). Drag to pan, scroll to zoom",
             FontId::proportional(14.0),
             palette::RULER_TEXT,
         );
@@ -241,7 +241,7 @@ fn draw_variants(
         painter.text(
             pos2(rect.left() + 8.0, top),
             Align2::LEFT_TOP,
-            format!("{} variants — zoom in to inspect", visible.len()),
+            format!("{} variants, zoom in to inspect", visible.len()),
             FontId::proportional(11.0),
             palette::RULER_TEXT,
         );

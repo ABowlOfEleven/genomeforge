@@ -92,7 +92,7 @@ pub fn parse(text: &str) -> Result<ScoreFile, String> {
     }
 
     if cols.is_none() {
-        return Err("no column header found — not a PGS scoring file".to_string());
+        return Err("no column header found, not a PGS scoring file".to_string());
     }
     if variants.is_empty() {
         return Err("scoring file contained no usable variants".to_string());

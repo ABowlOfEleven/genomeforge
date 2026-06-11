@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to report a bug. Please do **not** paste raw genetic data
-        or any personal genome file — describe the file type instead (23andMe, VCF, …).
+        or any personal genome file. Describe the file type instead (23andMe, VCF, …).
   - type: input
     id: version
     attributes:

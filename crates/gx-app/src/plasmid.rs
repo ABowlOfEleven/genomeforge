@@ -412,7 +412,7 @@ pub fn sidebar(
     ux::explain(
         ui,
         tier,
-        "Unique cutters cut the plasmid exactly once — the convenient places to insert new DNA.",
+        "Unique cutters cut the plasmid exactly once, the convenient places to insert new DNA.",
     );
     let uniq = unique_cutters(&state.sites);
     ui.label(egui::RichText::new(format!("Unique cutters ({})", uniq.len())).strong());
@@ -468,7 +468,7 @@ fn cloning_ui(ui: &mut egui::Ui, rec: &SequenceRecord, state: &PlasmidState, tie
         ui,
         tier,
         "A digest cuts the DNA with the enzymes shown, yielding fragments. This previews their \
-         sizes (like a gel) and the sticky ends left behind — the basis of cloning.",
+         sizes (like a gel) and the sticky ends left behind, the basis of cloning.",
     );
     let sites: Vec<gx_plasmid::RestrictionSite> =
         state.visible_sites().iter().map(|(_, s)| (*s).clone()).collect();
@@ -484,7 +484,7 @@ fn cloning_ui(ui: &mut egui::Ui, rec: &SequenceRecord, state: &PlasmidState, tie
             for f in &frags {
                 ui.label(
                     egui::RichText::new(format!(
-                        "{} bp   {}  —  {}",
+                        "{} bp   {}  -  {}",
                         f.len,
                         end_label(&f.left),
                         end_label(&f.right)
@@ -633,12 +633,12 @@ fn sequence_tools(ui: &mut egui::Ui, sub: &[u8]) {
     let tm_basic = if sub.len() >= 14 && stats.tm_basic > 0.0 {
         format!("{:.1} °C", stats.tm_basic)
     } else {
-        "—".to_string()
+        "-".to_string()
     };
     let tm_nn = if stats.tm_nn.is_finite() {
         format!("{:.1} °C", stats.tm_nn)
     } else {
-        "—".to_string()
+        "-".to_string()
     };
     ui.add_space(4.0);
     detail_grid(ui, &[("Tm (basic)", tm_basic), ("Tm (NN)", tm_nn)]);

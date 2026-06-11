@@ -10,8 +10,8 @@ License: MIT
 LicenseUrl: https://github.com/ABowlOfEleven/genomeforge/blob/main/LICENSE
 ShortDescription: A local, native genome browser, variant explorer, plasmid designer, and CRISPR studio.
 Description: |-
-  GenomeForge is a local, native desktop app to explore a genome down to the variant —
-  cross-referenced against public genetic databases — plus a plasmid designer, a CRISPR
+  GenomeForge is a local, native desktop app to explore a genome down to the variant,
+  cross-referenced against public genetic databases, plus a plasmid designer, a CRISPR
   studio, and polygenic-risk tools. Your raw genetic data stays on your machine. Research
   and educational use only; not medical advice.
 Moniker: genomeforge
