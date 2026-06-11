@@ -1459,16 +1459,17 @@ impl GenomeForgeApp {
         crate::phenotype::detail(ui, doc, tier);
     }
 
-    /// Classify maternal/paternal haplogroups once for the current document.
-    /// Cheap (a few hundred lookups), so we run it lazily on first view and cache.
-    fn ensure_haplogroups(&mut self) {
-        if self.ancestry.haplo_done {
+    /// Compute haplogroups and ancestry composition once for the current
+    /// document. Cheap (a few hundred lookups), so we run it lazily and cache.
+    fn ensure_ancestry(&mut self) {
+        if self.ancestry.done {
             return;
         }
         if let Some(doc) = self.document.as_ref().and_then(|d| d.variant_doc()) {
             self.ancestry.maternal = gx_haplo::classify_maternal(&doc.store);
             self.ancestry.paternal = gx_haplo::classify_paternal(&doc.store);
-            self.ancestry.haplo_done = true;
+            self.ancestry.composition = gx_ancestry::estimate(&doc.store);
+            self.ancestry.done = true;
         }
     }
 
@@ -1477,13 +1478,13 @@ impl GenomeForgeApp {
     }
 
     fn ancestry_central(&mut self, ui: &mut egui::Ui) {
-        self.ensure_haplogroups();
+        self.ensure_ancestry();
         let has_doc = self.document.as_ref().and_then(|d| d.variant_doc()).is_some();
         crate::ancestry::central(ui, &self.ancestry, has_doc, self.settings.tier);
     }
 
     fn ancestry_detail(&mut self, ui: &mut egui::Ui) {
-        self.ensure_haplogroups();
+        self.ensure_ancestry();
         crate::ancestry::detail(ui, &self.ancestry, self.settings.tier);
     }
 

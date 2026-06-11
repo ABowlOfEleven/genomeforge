@@ -3,20 +3,31 @@
 //! calls (no network). Population-ancestry / PCA estimation also lives here.
 
 use eframe::egui;
-use egui::RichText;
+use egui::{Color32, Pos2, RichText, Sense, Stroke, pos2, vec2};
 
+use gx_ancestry::{AncestryEstimate, SUPERPOPS, SUPERPOP_NAMES};
 use gx_haplo::{Confidence, HaploCall};
 
 use crate::theme::palette;
 use crate::ux::{self, Tier};
+
+/// Per-super-population colours, in SUPERPOPS order [AFR, AMR, EAS, EUR, SAS].
+const POP_COLORS: [Color32; 5] = [
+    Color32::from_rgb(0xE8, 0x8A, 0x3C), // African, orange
+    Color32::from_rgb(0xD1, 0x49, 0x49), // Admixed American, red
+    Color32::from_rgb(0x3F, 0xA9, 0x5B), // East Asian, green
+    Color32::from_rgb(0x3C, 0x7E, 0xD1), // European, blue
+    Color32::from_rgb(0x9B, 0x5D, 0xE5), // South Asian, purple
+];
 
 /// Per-document ancestry results, recomputed on each import.
 #[derive(Default)]
 pub struct AncestryState {
     pub maternal: Option<HaploCall>,
     pub paternal: Option<HaploCall>,
-    /// Whether haplogroup classification has already run for the current document.
-    pub haplo_done: bool,
+    pub composition: Option<AncestryEstimate>,
+    /// Whether ancestry classification has already run for the current document.
+    pub done: bool,
 }
 
 pub fn sidebar(ui: &mut egui::Ui, tier: Tier) {
@@ -50,12 +61,17 @@ pub fn central(ui: &mut egui::Ui, state: &AncestryState, has_doc: bool, tier: Ti
 
     if !has_doc {
         ui.label(
-            RichText::new("Load a genome (File ▸ Open) to predict your haplogroups.")
+            RichText::new("Load a genome (File ▸ Open) to estimate your ancestry.")
                 .color(palette::RULER_TEXT),
         );
         return;
     }
 
+    composition_section(ui, state, tier);
+
+    ui.add_space(12.0);
+    ui.label(RichText::new("Deep lineages").strong());
+    ui.add_space(4.0);
     lineage_card(
         ui,
         "Maternal line (mtDNA)",
@@ -144,6 +160,118 @@ pub fn detail(ui: &mut egui::Ui, state: &AncestryState, tier: Tier) {
     ux::disclaimer(ui);
 }
 
+fn composition_section(ui: &mut egui::Ui, state: &AncestryState, tier: Tier) {
+    ui.label(RichText::new("Ancestry composition").strong());
+    ux::explain_beginner(
+        ui,
+        tier,
+        "This compares the ancestry-informative markers in your file against five \
+         broad reference groups and estimates how much your genome resembles each. \
+         It is genetic similarity at a continental scale, not an identity test.",
+    );
+
+    let Some(est) = &state.composition else {
+        ui.label(
+            RichText::new(
+                "Not enough ancestry-informative markers in this file to estimate \
+                 composition.",
+            )
+            .size(11.0)
+            .color(palette::RULER_TEXT),
+        );
+        return;
+    };
+
+    ui.add_space(4.0);
+    stacked_bar(ui, est);
+    ui.add_space(6.0);
+
+    // Ranked proportions with colour swatches (anything at least 1%).
+    for (name, frac) in est.ranked() {
+        if frac < 0.01 {
+            continue;
+        }
+        let idx = SUPERPOP_NAMES.iter().position(|n| *n == name).unwrap_or(0);
+        ui.horizontal(|ui| {
+            let (sw, _) = ui.allocate_exact_size(vec2(12.0, 12.0), Sense::hover());
+            ui.painter().rect_filled(sw, 2.0, POP_COLORS[idx]);
+            ui.label(format!("{name}: {:.0}%", frac * 100.0));
+        });
+    }
+
+    ui.add_space(8.0);
+    simplex_plot(ui, est);
+
+    ui.label(
+        RichText::new(format!(
+            "{} of {} markers used.",
+            est.markers_used, est.markers_total
+        ))
+        .size(10.0)
+        .color(palette::RULER_TEXT),
+    );
+    ui.label(RichText::new(&est.note).size(11.0).color(palette::RULER_TEXT));
+}
+
+/// A horizontal stacked bar of the five proportions, in SUPERPOPS order.
+#[allow(clippy::needless_range_loop)] // parallel indexing of proportions + colours
+fn stacked_bar(ui: &mut egui::Ui, est: &AncestryEstimate) {
+    let w = ui.available_width().min(440.0);
+    let (rect, _) = ui.allocate_exact_size(vec2(w, 20.0), Sense::hover());
+    let mut x = rect.left();
+    for k in 0..5 {
+        let seg_w = rect.width() * est.proportions[k] as f32;
+        let seg = egui::Rect::from_min_size(pos2(x, rect.top()), vec2(seg_w, rect.height()));
+        ui.painter().rect_filled(seg, 0.0, POP_COLORS[k]);
+        x += seg_w;
+    }
+}
+
+/// Plot the five reference groups at the vertices of a pentagon and the sample at
+/// the proportion-weighted centroid, showing where it sits among the references.
+#[allow(clippy::needless_range_loop)] // vertices indexed with modular wraparound
+fn simplex_plot(ui: &mut egui::Ui, est: &AncestryEstimate) {
+    let size = 210.0;
+    let (rect, _) = ui.allocate_exact_size(vec2(size, size), Sense::hover());
+    let center = rect.center();
+    let radius = size * 0.34;
+    let mut verts = [center; 5];
+    for (k, v) in verts.iter_mut().enumerate() {
+        let ang = -std::f32::consts::FRAC_PI_2 + k as f32 * std::f32::consts::TAU / 5.0;
+        *v = center + vec2(ang.cos() * radius, ang.sin() * radius);
+    }
+    let painter = ui.painter();
+    // Faint pentagon outline.
+    for k in 0..5 {
+        painter.line_segment(
+            [verts[k], verts[(k + 1) % 5]],
+            Stroke::new(1.0, palette::RULER_TEXT.gamma_multiply(0.4)),
+        );
+    }
+    // Reference anchors with short labels just outside each vertex.
+    for k in 0..5 {
+        painter.circle_filled(verts[k], 5.0, POP_COLORS[k]);
+        let outward = (verts[k] - center).normalized() * 14.0;
+        painter.text(
+            verts[k] + outward,
+            egui::Align2::CENTER_CENTER,
+            SUPERPOPS[k],
+            egui::FontId::proportional(10.0),
+            POP_COLORS[k],
+        );
+    }
+    // Sample point: proportion-weighted centroid of the vertices.
+    let mut ix = 0.0;
+    let mut iy = 0.0;
+    for k in 0..5 {
+        ix += verts[k].x * est.proportions[k] as f32;
+        iy += verts[k].y * est.proportions[k] as f32;
+    }
+    let sample = Pos2::new(ix, iy);
+    painter.circle_filled(sample, 6.0, palette::ACCENT);
+    painter.circle_stroke(sample, 6.0, Stroke::new(1.5, Color32::WHITE));
+}
+
 fn lineage_card(
     ui: &mut egui::Ui,
     title: &str,
@@ -221,5 +349,11 @@ mod tests {
         );
         let paternal = gx_haplo::classify_paternal(&store).expect("paternal call");
         assert_eq!(paternal.haplogroup, "R1b", "got {}", paternal.haplogroup);
+
+        // The demo carries a European-typical AIM profile, so the ancestry
+        // estimate should be European-dominant.
+        let est = gx_ancestry::estimate(&store).expect("ancestry estimate");
+        let (top, frac) = est.ranked()[0];
+        assert_eq!(top, "European", "top ancestry was {top} ({frac:.2})");
     }
 }

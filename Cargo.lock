@@ -1605,6 +1605,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gx-ancestry"
+version = "0.1.1"
+dependencies = [
+ "gx-core",
+]
+
+[[package]]
 name = "gx-annotate"
 version = "0.1.0"
 dependencies = [
@@ -1629,6 +1636,7 @@ dependencies = [
  "egui_extras",
  "env_logger",
  "flate2",
+ "gx-ancestry",
  "gx-annotate",
  "gx-core",
  "gx-crispr",
