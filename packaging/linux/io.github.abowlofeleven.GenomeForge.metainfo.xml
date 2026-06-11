@@ -53,7 +53,24 @@
   </keywords>
 
   <releases>
-    <release version="0.1.1" date="2026-06-09">
+    <release version="0.1.2" date="2026-06-11">
+      <description>
+        <p>
+          Consumer-genome features: predicted maternal and paternal haplogroups,
+          a pharmacogenomics report, and a continental ancestry estimate, plus
+          local-cache management and data-source provenance in Settings.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.1" date="2026-06-10">
+      <description>
+        <p>
+          GRCh37/GRCh38 liftover, more CRISPR nucleases, base and prime editing,
+          plasmid assembly, and quality-of-life additions.
+        </p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-06-10">
       <description>
         <p>First multiplatform release: Windows, Linux (Flatpak), and macOS.</p>
       </description>

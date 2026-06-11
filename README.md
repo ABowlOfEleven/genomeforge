@@ -6,7 +6,7 @@
 
 ### Your genome, on your machine.
 
-**A professional-grade genomics workbench (genome browser, plasmid designer, CRISPR studio, and polygenic-risk modeling) that runs natively, works offline, and keeps your DNA private.**
+**A professional-grade genomics workbench (genome browser, plasmid designer, CRISPR studio, ancestry & pharmacogenomics, and polygenic-risk modeling) that runs natively, works offline, and keeps your DNA private.**
 
 [![CI](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/ci.yml/badge.svg)](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/ci.yml)
 [![Release](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/release.yml/badge.svg)](https://github.com/ABowlOfEleven/genomeforge/actions/workflows/release.yml)
@@ -32,8 +32,9 @@ CRISPR edit. No account, no upload, no subscription.
   ever sent to public APIs, and an offline mode uses nothing but the local cache.
 - **Native, not a web app.** Pure Rust and egui: a small, quick binary with no browser engine, no
   Electron, and no telemetry.
-- **Four tools in one window.** A genome browser, a plasmid CAD, a CRISPR studio, and a polygenic-risk
-  modeler, switchable from the top bar. No more stitching together half a dozen sites.
+- **Six tools in one window.** A genome browser, a plasmid CAD, a CRISPR studio, a polygenic-risk
+  modeler, an ancestry & haplogroup explorer, and a pharmacogenomics report, switchable from the top
+  bar. No more stitching together half a dozen sites.
 - **Approachable *and* professional.** A single dropdown retunes the entire interface from
   high-school-friendly to expert-dense, with a built-in tutorial in every section.
 - **Free and open source.** MIT-licensed and multiplatform: Windows, Linux, and macOS.
@@ -42,7 +43,7 @@ CRISPR edit. No account, no upload, no subscription.
 
 ## What's inside
 
-Four workspaces share one window, switchable from the top bar.
+Six workspaces share one window, switchable from the top bar.
 
 | Workspace | What it does |
 |-----------|--------------|
@@ -50,6 +51,8 @@ Four workspaces share one window, switchable from the top bar.
 | **Plasmid designer** | Circular and linear maps, restriction-site mapping with unique-cutter highlighting, ORF detection and translation, primer Tm / GC, a digest / cloning preview with a mini gel, and Golden-Gate / Gibson assembly simulation. |
 | **CRISPR studio** | Guide design across SpCas9, SpCas9-NG, SpRY, and Cas12a, with a real Doench 2014 on-target model, CFD off-target scoring (against the target or a loaded reference genome), NHEJ / HDR edit simulation, base- and prime-editing previews, and an AAV cargo planner. |
 | **Phenotype & risk** | Polygenic scores from the PGS Catalog applied to your genome, with coverage, an ancestry caveat, and the Mendelian / ClinVar findings that can matter on their own. |
+| **Ancestry & lineage** | Predicted maternal (mtDNA) and paternal (Y-DNA) haplogroups from PhyloTree and the ISOGG tree, plus a continental ancestry-composition estimate against five 1000 Genomes super-populations. Computed entirely on your machine, framed as coarse genetic similarity rather than an identity test. |
+| **Pharmacogenomics** | A CPIC-based drug-response report: star-allele / diplotype calling for 15 pharmacogenes with metabolizer phenotypes and per-drug notes, honest about what consumer arrays cannot call. Informational only, not medical advice. |
 
 Open files by drag-and-drop or **File ▸ Open Recent**, copy sequences and IDs to the clipboard, and
 let the app check for new releases on launch.

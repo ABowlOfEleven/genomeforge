@@ -1606,7 +1606,7 @@ dependencies = [
 
 [[package]]
 name = "gx-ancestry"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
 ]
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "gx-app"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "directories",
@@ -1663,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "gx-crispr"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
  "gx-plasmid",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "gx-haplo"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
 ]
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "gx-pgs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
  "serde",
@@ -1698,14 +1698,14 @@ dependencies = [
 
 [[package]]
 name = "gx-pgx"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
 ]
 
 [[package]]
 name = "gx-plasmid"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "gx-core",
  "serde",

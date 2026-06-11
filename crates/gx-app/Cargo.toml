@@ -1,6 +1,6 @@
 [package]
 name = "gx-app"
-version = "0.1.0"
+version.workspace = true
 edition = "2024"
 description = "GenomeForge — a local genome browser, variant explorer, plasmid designer, CRISPR studio, and polygenic-risk tool"
 authors = ["GenomeForge contributors"]
