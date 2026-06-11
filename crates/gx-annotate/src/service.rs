@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use gx_core::{Assembly, Feature, GenomicRange};
 
 use crate::annotation::{GeneLocation, VariantAnnotation};
-use crate::cache::Cache;
+use crate::cache::{Cache, CacheStats};
 use crate::clients::{EnsemblClient, MyVariantClient};
 use crate::error::{AnnotateError, Result};
 use crate::literature::{Article, PubMedClient};
@@ -71,6 +71,16 @@ impl AnnotationService {
 
     pub fn set_assembly(&mut self, assembly: Assembly) {
         self.assembly = assembly;
+    }
+
+    /// Cached-entry counts, for the Settings cache panel.
+    pub fn cache_stats(&self) -> Result<CacheStats> {
+        self.cache.stats()
+    }
+
+    /// Drop every cached annotation/feature/sequence/gene entry.
+    pub fn clear_cache(&self) -> Result<()> {
+        self.cache.clear()
     }
 
     /// Annotate a set of rsIDs, cache-first. Returns one entry per rsID that

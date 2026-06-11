@@ -15,7 +15,7 @@ mod service;
 mod update;
 
 pub use annotation::{GeneLocation, VariantAnnotation, feature_from_ensembl};
-pub use cache::Cache;
+pub use cache::{Cache, CacheStats};
 pub use clients::{EnsemblClient, MyVariantClient};
 pub use error::{AnnotateError, Result};
 pub use literature::{Article, PubMedClient};

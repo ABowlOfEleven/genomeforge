@@ -78,6 +78,10 @@ pub struct GenomeForgeApp {
     update: Option<gx_annotate::UpdateInfo>,
     show_about: bool,
     show_shortcuts: bool,
+    /// Local annotation-cache entry counts (refreshed when Settings opens).
+    cache_stats: Option<gx_annotate::CacheStats>,
+    /// On-disk path of the annotation cache (for size/age display).
+    cache_file: PathBuf,
 }
 
 /// The GitHub repo the update check queries.
@@ -90,9 +94,10 @@ impl GenomeForgeApp {
             .storage
             .and_then(|s| eframe::get_value(s, "settings"))
             .unwrap_or_default();
+        let cache_file = cache_path();
         let worker = Worker::spawn(
             cc.egui_ctx.clone(),
-            cache_path(),
+            cache_file.clone(),
             settings.online,
             settings.api_key_opt(),
         );
@@ -147,7 +152,15 @@ impl GenomeForgeApp {
             update: None,
             show_about: false,
             show_shortcuts: false,
+            cache_stats: None,
+            cache_file,
         }
+    }
+
+    /// Open the Settings window and refresh the cache statistics shown in it.
+    fn open_settings(&mut self) {
+        self.show_settings = true;
+        self.send(Request::CacheStats);
     }
 
     fn current_assembly(&self) -> Assembly {
@@ -235,6 +248,7 @@ impl GenomeForgeApp {
                         self.update = info;
                     }
                 }
+                Response::CacheStats(s) => self.cache_stats = Some(s),
                 Response::Notice(s) => self.status = s,
                 Response::Failed(e) => {
                     self.status = format!("⚠ {e}");
@@ -493,7 +507,7 @@ impl GenomeForgeApp {
                 });
             });
             if ui.button("⚙ Settings").clicked() {
-                self.show_settings = true;
+                self.open_settings();
             }
 
             ui.separator();
@@ -826,6 +840,13 @@ impl GenomeForgeApp {
                 }
             }
         });
+        if doc.annotation_for(v).is_some() {
+            ui.label(
+                egui::RichText::new("via MyVariant.info, cached locally")
+                    .size(10.0)
+                    .color(palette::RULER_TEXT),
+            );
+        }
 
         // Pull owned identifiers, then the `doc`/`v` borrow ends so the
         // &mut self drill-downs (literature, liftover) are legal.
@@ -1143,6 +1164,71 @@ impl GenomeForgeApp {
                     }
                     self.settings.assembly_override = choice;
                 });
+
+                ui.separator();
+                ui.label(egui::RichText::new("Local cache").strong());
+                let meta = std::fs::metadata(&self.cache_file).ok();
+                let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+                let age = meta
+                    .as_ref()
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| t.elapsed().ok());
+                let stats = self.cache_stats;
+                egui::Grid::new("cache_stats").num_columns(2).spacing([12.0, 2.0]).show(ui, |ui| {
+                    ui.label("On disk:");
+                    ui.label(human_bytes(size));
+                    ui.end_row();
+                    if let Some(age) = age {
+                        ui.label("Last updated:");
+                        ui.label(humanize_ago(age));
+                        ui.end_row();
+                    }
+                    if let Some(s) = stats {
+                        ui.label("Annotations:");
+                        ui.label(s.annotations.to_string());
+                        ui.end_row();
+                        ui.label("Gene / sequence regions:");
+                        ui.label((s.feature_regions + s.sequence_regions).to_string());
+                        ui.end_row();
+                    }
+                });
+                if ui
+                    .button("Clear cache")
+                    .on_hover_text(
+                        "Delete all cached annotations, gene models, and sequence. They \
+                         re-download on demand when Online.",
+                    )
+                    .clicked()
+                {
+                    self.send(Request::ClearCache);
+                    self.cache_stats = None;
+                    self.requested_annot.clear();
+                    self.refdata.fetched_tiles.clear();
+                    self.refdata.requested_seq.clear();
+                    self.status = "Cache cleared.".into();
+                }
+
+                ui.separator();
+                ui.label(egui::RichText::new("Data sources").strong());
+                ui.label(
+                    egui::RichText::new(
+                        "Queried live when Online, then cached locally. Versions track each \
+                         upstream service. Your raw genotypes are never sent; only rsIDs and \
+                         genomic regions are.",
+                    )
+                    .size(11.0)
+                    .color(palette::RULER_TEXT),
+                );
+                for line in [
+                    "Variant annotations: MyVariant.info (ClinVar, dbSNP, gnomAD, CADD, GWAS Catalog)",
+                    "Gene models & sequence: Ensembl REST",
+                    "Polygenic scores: PGS Catalog",
+                    "Publications: NCBI PubMed",
+                    "Liftover: Ensembl assembly map",
+                ] {
+                    ui.label(egui::RichText::new(format!("• {line}")).size(11.0));
+                }
+
                 ui.separator();
                 ux::disclaimer(ui);
             });
@@ -1723,6 +1809,34 @@ fn parse_locus(s: &str) -> Option<(String, u64)> {
     let pos_str = rest.split(['-', '–']).next()?.replace([',', '_'], "");
     let pos: u64 = pos_str.trim().parse().ok()?;
     Some((gx_core::normalize_contig(chrom), pos.saturating_sub(1)))
+}
+
+/// Human-readable byte size (B / KiB / MiB).
+fn human_bytes(n: u64) -> String {
+    const KIB: u64 = 1024;
+    const MIB: u64 = KIB * 1024;
+    if n >= MIB {
+        format!("{:.1} MiB", n as f64 / MIB as f64)
+    } else if n >= KIB {
+        format!("{:.0} KiB", n as f64 / KIB as f64)
+    } else {
+        format!("{n} B")
+    }
+}
+
+/// Coarse "n units ago" from a duration, for cache-freshness display.
+fn humanize_ago(d: std::time::Duration) -> String {
+    let s = d.as_secs();
+    let (n, unit) = if s < 60 {
+        return "just now".to_string();
+    } else if s < 3600 {
+        (s / 60, "minute")
+    } else if s < 86_400 {
+        (s / 3600, "hour")
+    } else {
+        (s / 86_400, "day")
+    };
+    format!("{n} {unit}{} ago", if n == 1 { "" } else { "s" })
 }
 
 fn cache_path() -> PathBuf {

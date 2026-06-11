@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use redb::{Database, ReadableDatabase, TableDefinition};
+use redb::{Database, ReadableDatabase, ReadableTableMetadata, TableDefinition};
 
 use gx_core::{Assembly, Feature};
 
@@ -22,6 +22,22 @@ const GENE_LOOKUP: TableDefinition<&str, &str> = TableDefinition::new("gene_look
 
 const ALL_TABLES: [TableDefinition<&str, &str>; 4] =
     [VARIANT_ANN, REGION_FEATURES, REGION_SEQUENCE, GENE_LOOKUP];
+
+/// Per-table entry counts, for the Settings cache panel.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CacheStats {
+    pub annotations: u64,
+    pub feature_regions: u64,
+    pub sequence_regions: u64,
+    pub genes: u64,
+}
+
+impl CacheStats {
+    /// Total cached entries across all tables.
+    pub fn total(&self) -> u64 {
+        self.annotations + self.feature_regions + self.sequence_regions + self.genes
+    }
+}
 
 pub struct Cache {
     db: Database,
@@ -151,6 +167,32 @@ impl Cache {
         let key = Self::region_key(assembly, &symbol.to_ascii_uppercase());
         let json = serde_json::to_string(gene)?;
         self.put(GENE_LOOKUP, &key, &json)
+    }
+
+    // ---- maintenance -------------------------------------------------------
+
+    /// Entry counts per table.
+    pub fn stats(&self) -> Result<CacheStats> {
+        let r = self.db.begin_read().map_err(db_err)?;
+        let count = |table: TableDefinition<&str, &str>| -> Result<u64> {
+            r.open_table(table).map_err(db_err)?.len().map_err(db_err)
+        };
+        Ok(CacheStats {
+            annotations: count(VARIANT_ANN)?,
+            feature_regions: count(REGION_FEATURES)?,
+            sequence_regions: count(REGION_SEQUENCE)?,
+            genes: count(GENE_LOOKUP)?,
+        })
+    }
+
+    /// Drop every cached entry, leaving the (empty) tables in place.
+    pub fn clear(&self) -> Result<()> {
+        let w = self.db.begin_write().map_err(db_err)?;
+        for table in ALL_TABLES {
+            w.delete_table(table).map_err(db_err)?;
+        }
+        w.commit().map_err(db_err)?;
+        self.ensure_tables()
     }
 }
 

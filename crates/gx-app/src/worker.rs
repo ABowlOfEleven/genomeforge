@@ -11,7 +11,9 @@ use std::thread;
 use eframe::egui;
 
 use gx_core::{Assembly, Feature, GenomicRange};
-use gx_annotate::{AnnotationService, Article, Cache, GeneLocation, UpdateInfo, VariantAnnotation};
+use gx_annotate::{
+    AnnotationService, Article, Cache, CacheStats, GeneLocation, UpdateInfo, VariantAnnotation,
+};
 
 pub enum Request {
     Import(PathBuf),
@@ -31,6 +33,10 @@ pub enum Request {
     },
     /// Check GitHub for a newer release of the app.
     CheckUpdate(String),
+    /// Report how many entries are in the local annotation cache.
+    CacheStats,
+    /// Empty the local annotation cache.
+    ClearCache,
     SetOnline(bool),
     SetAssembly(Assembly),
     Shutdown,
@@ -65,6 +71,8 @@ pub enum Response {
     },
     /// Latest GitHub release, if the check succeeded (`None` = up to date / no releases).
     Update(Option<UpdateInfo>),
+    /// Current (or post-clear) local cache entry counts.
+    CacheStats(CacheStats),
     Notice(String),
     Failed(String),
     /// A counted request that produced no data (keeps the in-flight tally exact).
@@ -223,5 +231,17 @@ fn handle(service: &mut AnnotationService, req: Request) -> HandleOutcome {
                 }
             }
         }
+        Request::CacheStats => match service.cache_stats() {
+            Ok(s) => HandleOutcome::Reply(Response::CacheStats(s)),
+            Err(e) => HandleOutcome::Reply(Response::Failed(format!("cache stats: {e}"))),
+        },
+        Request::ClearCache => match service.clear_cache() {
+            Ok(()) => {
+                log::info!("annotation cache cleared");
+                let stats = service.cache_stats().unwrap_or_default();
+                HandleOutcome::Reply(Response::CacheStats(stats))
+            }
+            Err(e) => HandleOutcome::Reply(Response::Failed(format!("clear cache: {e}"))),
+        },
     }
 }
